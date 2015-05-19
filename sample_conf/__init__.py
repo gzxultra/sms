@@ -4,7 +4,7 @@ import os
 __all__ = ['Config']
 
 
-config_module_path = os.environ.get('SMSSERVER_CONFIG', 'sample')
+config_module_path = os.environ.get('SMSSERVER_CONFIG', '')
 
 
 config_module = __import__(config_module_path, fromlist=['Config'])

@@ -1,7 +1,7 @@
 # coding: utf8
 
 
-class Config(object):
+class DefaultConfig(object):
     THREAD_SAFE = False
     DEBUG = False
     DOMAIN = ''
