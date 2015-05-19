@@ -14,7 +14,7 @@ def unused_and_not_expired_verification(scope='module'):
     return sms_verification
 
 
-def test_user_bind_phone_with_valid_verification_code():
+def test_verify_with_valid_code():
     country_calling_code = '86'
     phone_number = '18510238421'
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_calling_code, phone_number)
@@ -22,7 +22,7 @@ def test_user_bind_phone_with_valid_verification_code():
                                   sms_verification.code)
 
 
-def test_user_bind_phone_with_invalid_verification_code1():
+def test_verify_with_valid_code1():
     country_calling_code = '86'
     phone_number = '18510238421'
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_calling_code, phone_number)
@@ -30,21 +30,21 @@ def test_user_bind_phone_with_invalid_verification_code1():
                                            sms_verification.code+'1')
 
 
-def test_user_bind_phone_with_invalid_verification_code2():
+def test_verify_with_valid_code2():
     country_calling_code = '86'
     phone_number = '18510238421'
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_calling_code, phone_number)
     assert False == SMSVerification.verify(country_calling_code, phone_number, sms_verification.serial_number+'1', sms_verification.code)
 
 
-def test_user_bind_phone_with_invalid_verification_code3():
+def test_verify_with_valid_code3():
     country_calling_code = '86'
     phone_number = '18510238421'
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_calling_code, phone_number)
     assert False == SMSVerification.verify(country_calling_code, phone_number+'1', sms_verification.serial_number, sms_verification.code)
 
 
-def test_user_bind_phone_with_invalid_verification_code4():
+def test_verify_with_valid_code4():
     country_calling_code = '86'
     phone_number = '18510238421'
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_calling_code, phone_number)

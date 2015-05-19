@@ -41,7 +41,7 @@ class SMSCenter(object):
                                phone_number=phone_number, text=text,
                                provider_id=provider.id).save()
             fee_count, sid = ret['fee_count'], ret['sid']
-            record.update(fee_count=fee_count, sid=sid)
+            record.update(fee_count=fee_count, sid=sid, status=SMSSendStatus.success)
         else:
             raise NotImplemented
 
@@ -103,17 +103,3 @@ class SMSRecord(Model):
             error_msg = ''
             provider_id = None
             status = SMSSendStatus.initial
-
-    @classmethod
-    def send(cls, country_calling_code, phone_number, text):
-        obj = cls(country_calling_code=country_calling_code,
-                  phone_number=phone_number, text=text).save()
-        try:
-            ret = yunpian.send(phone_number, text)
-        except Timeout:
-            raise SMSServiceTimeout
-
-        fee_count, sid = ret['fee_count'], ret['sid']
-        obj.update(fee_count=fee_count, sid=sid)
-
-        return '%s/%s' % ('yunpian', obj.id)
