@@ -1,0 +1,38 @@
+<%inherit file="/common/god_base.html" />
+
+
+<%block name="main">
+  <h1 class="page-header">记录查询</h1>
+  <div class="row">
+    <form action="${url_for('.query')}" method="GET" class="form-horizontal">
+      <div class="form-group">
+        <label class="col-md-2 control-label">电话号码</label>
+        <div class="col-md-6">
+          <input type="text" class="form-control" required name="phone_number">
+        </div>
+        <div class="col-md-4">
+          <button type="submit" class="btn btn-default">查询</button>
+        </div>
+      </div>
+    </form>
+    <h2>共 ${len(records)} 条</h2>
+    <table class="table">
+      <thead>
+        <td>号码</td>
+        <td>时间</td>
+        <td>内容</td>
+        <td>接口</td>
+      </thead>
+      <tbody>
+        %for record in records:
+          <tr>
+            <td>${record.phone_number}</td>
+            <td>${record.create_time}</td>
+            <td>${record.text}</td>
+            <td>${record.provider_id}</td>
+          </tr>
+        %endfor
+      </tbody>
+    </table>
+  </div>
+</%block>

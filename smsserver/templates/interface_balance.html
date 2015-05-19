@@ -1,0 +1,91 @@
+<%inherit file="/common/god_base.html" />
+
+
+<%block name="main">
+  <h1 class="page-header">短信网关接口分配</h1>
+  <div class="row">
+    <div class="row">
+      <div class="col-md-8"></div>
+      <div class="col-md-2">
+        <label>剩余<input disabled type="text" class="remainder form-control" value="0"></label>
+      </div>
+    </div>
+    %for index, provider in enumerate(sms_providers):
+      <%
+      progress_style = ['success', 'info', 'warning', 'danger'][index%4]
+      %>
+      <div class="row provider" data-provider="${provider['id']}">
+        <div class="col-md-8">
+          <div class="progress">
+            <div class="percentage-show progress-bar progress-bar-${progress_style}" role="progressbar" aria-valuenow="${provider['weight']}" aria-valuemin="0" aria-valuemax="100" style="width: ${provider['weight']}%">
+              <span>${provider['name']}</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <input type="text" class="percentage-input form-control" value="${provider['weight']}">
+        </div>
+      </div>
+    %endfor
+    <div class="row">
+      <div class="col-md-8"></div>
+      <div class="col-md-4">
+        <button class="btn btn-default" class="pull-right" id="update_percentage">更改</button>
+      </div>
+    </div>
+  </div>
+</%block>
+
+
+<%block name="js">
+  <script>
+    $('.percentage-input').on('keyup', function(e) {
+      var total = 0;
+      var inputVal = parseInt($(this).val());
+      var index;
+
+      $('.percentage-input').each(function() {
+        total += parseInt(this.value || 0, 10);
+      });
+      if (total > 100) {
+        $(this).val(100 - (total - inputVal));
+        total = 100;
+      }
+
+      $('.percentage-input').each(function() {
+        $(this).closest('.row').find('.percentage-show').css('width', $(this).val()+'%');
+      });
+
+      $('.remainder').val(100 - total);
+    });
+
+    $('#update_percentage').on('click', function() {
+      var total = 0;
+      var data = {};
+
+      $('.percentage-input').each(function() {
+        total += parseInt(this.value || 0, 10);
+      });
+
+      if (total !== 100) {
+        alert('总数不为100');
+        return;
+      }
+
+      $('.provider').each(function() {
+        data[$(this).data('provider')] = parseInt($(this).find('.percentage-input').val());
+      });
+
+      $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '${url_for('.set_interface_balance')}',
+        data: {'data': JSON.stringify(data)}
+      }).done(function() {
+        location = location.href;
+      }).fail(function(xhr) {
+        alert(xhr.responseJSON.msg);
+      });
+    });
+  </script>
+</%block>
