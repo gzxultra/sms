@@ -2,9 +2,9 @@
 
 import logging
 import logging.config
-import os
 import sys
 import simplejson
+from os.path import join, exists, dirname
 from flask import Flask
 from conf import Config
 from smsserver.models import db, mc
@@ -30,8 +30,8 @@ def register_route(app):
 
 
 def register_logger(app):
-    path = os.path.join(os.path.dirname(__file__), 'logging.json')
-    if os.path.exists(path):
+    path = join(dirname(dirname(__file__)), 'conf', 'logging.json')
+    if exists(path):
         with open(path, 'rt') as f:
             logging_config = simplejson.loads(f.read())
         logging.config.dictConfig(logging_config)

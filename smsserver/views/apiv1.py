@@ -1,5 +1,6 @@
 # coding: utf8
 import logging
+import simplejson
 from flask import Blueprint
 from flask import request
 from smsserver.models.sms_verification import SMSVerification
@@ -24,12 +25,17 @@ def phone_send_verification_code():
     phone_number = request.form.get('phone_number', '').strip()
 
     if not all([country_code, phone_number]):
+        apiv1_logger.error('send_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
+                                                             simplejson.dumps(request.form)))
         return error(Apiv1Error.not_all_parameters_provided)
 
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
     try:
         sms_verification.send_sms()
-    except SMSSendFailed:
+    except SMSSendFailed, e:
+        apiv1_logger.error('send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
+                                                                simplejson.dumps(request.form), e.message))
+
         return error(Apiv1Error.send_verification_code_failed)
 
     return ok({'serial_number': sms_verification.serial_number,
@@ -46,6 +52,9 @@ def verify_code():
     code = request.form.get('code', '').strip()
 
     if not all([country_code, phone_number, serial_number, code]):
+        apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
+                                                  simplejson.dumps(request.form)))
+
         return error(Apiv1Error.not_all_parameters_provided)
 
     # 测试服务器万能验证码
@@ -56,4 +65,6 @@ def verify_code():
     if ret:
         return ok()
 
+    apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.invalid_verification_code[0],
+                                              simplejson.dumps(request.form)))
     return error(Apiv1Error.invalid_verification_code)

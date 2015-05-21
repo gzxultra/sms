@@ -2,9 +2,13 @@
 
 import datetime
 import random
+import logging
 from smsserver.models import Model
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
 from smsserver.utils.provider import SMSSendFailed, yunpianv1_client
+
+
+send_sms_logger = logging.getLogger('send_sms')
 
 
 def _weighted_choice(choices):
@@ -21,7 +25,7 @@ class SMSCenter(object):
     @classmethod
     def send(cls, country_code, phone_number, text):
         if country_code != '86':
-            raise NotImplemented
+            raise SMSSendFailed('不支持发送国外短信')
 
         avaliable_provider_list = list(SMSProvider.where('weight != 0'))
         avaliable_provider_num = len(avaliable_provider_list)
@@ -31,8 +35,11 @@ class SMSCenter(object):
             chosen_provider = _weighted_choice(choices)
 
             try:
-                return chosen_provider.send(country_code, phone_number, text)
+                ret = chosen_provider.send(country_code, phone_number, text)
+                send_sms_logger.info('sms_send_success, %s %s %s' % (country_code, phone_number, text))
+                return ret
             except SMSSendFailed, e:
+                send_sms_logger.error('sms_send_failed,%s' % (e.message))
                 avaliable_provider_list.remove(chosen_provider)
 
         raise SMSSendFailed
