@@ -4,7 +4,7 @@ import random
 import string
 from smsserver.models import Model
 from smsserver.models.const import SMSVerificationStatus
-from smsserver.models.sms_center import SMSCenter, SMSServiceTimeout
+from smsserver.models.sms_center import SMSCenter
 
 
 class SMSVerification(Model):
@@ -68,15 +68,8 @@ class SMSVerification(Model):
         return u'【下厨房】验证码：%s，请在15分钟内完成验证。' % (self.code)
 
     def send_sms(self):
-        try:
-            self.begin()
-            record = SMSCenter.send(self.country_code, self.phone_number, self.text)
-            svd = SMSVerificationDelivery(sms_verification_id=self.id, smsid=record.id).save()
-            self.commit()
-        except SMSServiceTimeout:
-            # 只捕获超时异常，HTTPError以及ConnectError不捕获
-            self.rollback()
-            return
+        record = SMSCenter.send(self.country_code, self.phone_number, self.text)
+        SMSVerificationDelivery(sms_verification_id=self.id, smsid=record.id).save()
 
     def is_send_success(self):
         return SMSVerificationDelivery.where(sms_verification_id=self.id).count() != 0

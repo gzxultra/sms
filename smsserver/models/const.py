@@ -10,3 +10,7 @@ class SMSSendStatus(object):
     initial = 0
     success = 1
     failed = 2
+
+
+class SMSProviderIdent(object):
+    yunpian = 1

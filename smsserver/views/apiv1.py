@@ -27,7 +27,10 @@ def phone_send_verification_code():
         return error(Apiv1Error.not_all_parameters_provided)
 
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
-    sms_verification.send_sms()
+    try:
+        sms_verification.send_sms()
+    except SMSSendFailed:
+        return error(Apiv1Error.send_verification_code_failed)
 
     return ok({'serial_number': sms_verification.serial_number,
                'country_code': country_code,

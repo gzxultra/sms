@@ -2,62 +2,40 @@
 
 import datetime
 import random
-from requests.exceptions import Timeout, ConnectionError
 from smsserver.models import Model
-from smsserver.models.const import SMSSendStatus
-from smsserver.utils.yunpian import YunPianV1, YunPianExceptionV1
-from conf import Config
+from smsserver.models.const import SMSSendStatus, SMSProviderIdent
+from smsserver.utils.provider import SMSSendFailed, yunpianv1_client
 
 
-yunpian = YunPianV1(Config.YUNPIAN_APIKEY)
-
-
-class SMSServiceTimeout(Exception):
-    pass
-
-
-class SMSSendFailed(Exception):
-    def __init__(self, code=-1, err_msg=''):
-        self.code, self.err_msg = code, err_msg
-
-    def __str__(self):
-        return u'code: %s, err_msg: %s' % (self.code, self.err_msg)
+def _weighted_choice(choices):
+    total = sum(w for c, w in choices)
+    r = random.uniform(0, total)
+    upto = 0
+    for c, w in choices:
+        if upto + w > r:
+            return c
+        upto += w
 
 
 class SMSCenter(object):
     @classmethod
-    def choice_provider(cls):
-        rand = random.randint(0, 100)
-        provider = SMSProvider.where('%s <=start and %s < end', rand, rand)[0]
-
-        if not provider:
-            return SMSProvider.where()[0]
-        return provider
-
-    @classmethod
     def send(cls, country_code, phone_number, text):
         if country_code != '86':
             raise NotImplemented
-        provider = cls.choice_provider()
-        record = SMSRecord(country_code=country_code,
-                           phone_number=phone_number, text=text,
-                           provider_id=provider.id).save()
 
-        if provider.name == u'云片':
+        avaliable_provider_list = list(SMSProvider.where('weight != 0'))
+        avaliable_provider_num = len(avaliable_provider_list)
+
+        for i in range(avaliable_provider_num):
+            choices = [(provider, provider.weight) for provider in avaliable_provider_list]
+            chosen_provider = _weighted_choice(choices)
+
             try:
-                ret = yunpian.send(phone_number, text)
-                fee_count, sid = ret['fee_count'], ret['sid']
-                record.update(fee_count=fee_count, sid=sid, status=SMSSendStatus.success)
-            except (Timeout, ConnectionError):
-                record.update(status=SMSSendStatus.failed)
-                raise SMSSendFailed
-            except YunPianExceptionV1, e:
-                record.update(status=SMSSendStatus.failed, err_msg=e.msg)
-                raise SMSSendFailed(e.code, '%s/%s' % (e.msg, e.detail))
-        else:
-            raise NotImplemented
+                return chosen_provider.send(country_code, phone_number, text)
+            except SMSSendFailed, e:
+                avaliable_provider_list.remove(chosen_provider)
 
-        return record
+        raise SMSSendFailed
 
 
 class SMSProvider(Model):
@@ -67,35 +45,36 @@ class SMSProvider(Model):
         class default(object):
             id = None
             name = ''
-            start = 0
-            end = 0
+            weight = 1
+            ident = None
             create_time = datetime.datetime.now
             update_time = datetime.datetime.now
 
     @classmethod
-    def create(cls, name, start=0, end=0):
-        return cls(name=name, start=start, end=end).save()
+    def create(cls, name, ident, weight):
+        return cls(name=name, ident=ident, weight=weight).save()
 
-    @classmethod
-    def reset_weight(cls, d):
-        '''
-        d = {id: weight}
-        '''
-        if sum([v for k, v in d.iteritems()]) != 100:
-            raise ValueError
+    @property
+    def api_client(self):
+        if self.ident == SMSProviderIdent.yunpian:
+            return yunpianv1_client
+        raise ValueError
 
+    def set_weight(self, weight):
+        self.update(weight=weight)
+
+    def send(self, country_code, phone_number, text):
+        api_client = self.api_client
+        record = SMSRecord(country_code=country_code, phone_number=phone_number,
+                           text=text, provider_id=self.id).save()
         try:
-            cls.begin()
-            cls.where().update(start=0, end=0)
-            cnt = 0
-            for id_, weight in d.iteritems():
-                start, end = cnt, cnt + weight
-                cls.where(id=id_).update(start=start, end=end)
-                cnt += weight
-            cls.commit()
-        except:
-            cls.rollback()
-            raise
+            ret = api_client.send(country_code, phone_number, text)
+        except SMSSendFailed, e:
+            record.update(status=SMSSendStatus.failed, err_msg=e.message)
+            raise e
+        else:
+            record.update(status=SMSSendStatus.success, outid=ret['outid'])
+        return record
 
 
 class SMSRecord(Model):
@@ -105,7 +84,6 @@ class SMSRecord(Model):
         class default(object):
             id = None
             text = ''
-            fee_count = None
             country_code = ''
             phone_number = ''
             outid = None

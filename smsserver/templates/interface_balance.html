@@ -4,12 +4,6 @@
 <%block name="main">
   <h1 class="page-header">短信网关接口分配</h1>
   <div class="row">
-    <div class="row">
-      <div class="col-md-8"></div>
-      <div class="col-md-2">
-        <label>剩余<input disabled type="text" class="remainder form-control" value="0"></label>
-      </div>
-    </div>
     %for index, provider in enumerate(sms_providers):
       <%
       progress_style = ['success', 'info', 'warning', 'danger'][index%4]
@@ -39,38 +33,25 @@
 
 <%block name="js">
   <script>
-    $('.percentage-input').on('keyup', function(e) {
+    function updateProgress() {
       var total = 0;
-      var inputVal = parseInt($(this).val());
-      var index;
-
       $('.percentage-input').each(function() {
         total += parseInt(this.value || 0, 10);
       });
-      if (total > 100) {
-        $(this).val(100 - (total - inputVal));
-        total = 100;
-      }
 
       $('.percentage-input').each(function() {
-        $(this).closest('.row').find('.percentage-show').css('width', $(this).val()+'%');
+        $(this).closest('.row').find('.percentage-show').css('width', $(this).val()*100/total+'%');
       });
+    }
 
-      $('.remainder').val(100 - total);
+    updateProgress();
+
+    $('.percentage-input').on('keyup', function(e) {
+      updateProgress();
     });
 
     $('#update_percentage').on('click', function() {
-      var total = 0;
       var data = {};
-
-      $('.percentage-input').each(function() {
-        total += parseInt(this.value || 0, 10);
-      });
-
-      if (total !== 100) {
-        alert('总数不为100');
-        return;
-      }
 
       $('.provider').each(function() {
         data[$(this).data('provider')] = parseInt($(this).find('.percentage-input').val());

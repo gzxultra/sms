@@ -1,58 +1,38 @@
 # coding: utf8
 
-import functools
 import requests
 from urllib import urlencode
-from requests.exceptions import ConnectionError, Timeout
+from smsserver.utils.provider.base import retry_when_request_failed, BaseClient, SMSSendFailed
 
 
-def retry_when_request_failed(func):
-    @functools.wraps(func)
-    def _(*args, **kwargs):
-        try:
-            ret = func(*args, **kwargs)
-        except (ConnectionError, Timeout):
-            return func(*args, **kwargs)
-        else:
-            return ret
-    return _
-
-
-class YunPianExceptionV1(Exception):
-    def __init__(self, code, msg, detail):
-        self.code, self.msg, self.detail = code, msg, detail
-
-    def __str__(self):
-        return '%s %s %s' % (self.code, self.msg, self.detail)
-
-
-class YunPianV1(object):
+class YunPianV1Client(BaseClient):
     DOMAIN = 'http://yunpian.com'
 
     def __init__(self, apikey):
         self.apikey = apikey
 
-    @retry_when_request_failed
-    def send(self, mobile, text):
+    @retry_when_request_failed(3)
+    def send(self, country_code, phone_number, text):
         '''
-        mobile: 国内电话号码 text: 文本内容
-        返回值: {'fee_count': xxx, 'sid': xxx} fee_count表示扣费条数(70个字一条，超出70个字时按每67字一条计), sid表示短信id
+        country_code:国家区号 phone_number:电话号码 text: 文本内容
+        返回值: {'outid': xxx}
         '''
+        mobile = phone_number
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
         d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
         ret = requests.post(url, data=d, timeout=5).json()
 
         if ret['code'] != 0:
-            raise YunPianExceptionV1(ret['code'], ret['msg'], ret['detail'])
+            raise SMSSendFailed('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
-        return {'fee_count': int(ret['result']['fee']), 'sid': ret['result']['sid']}
+        return {'outid': ret['result']['sid']}
 
-    @retry_when_request_failed
-    def tmp_send(self, mobile, tpl_id, value):
+    def tpl_send(self, country_code, phone_number, tpl_id, value):
         '''
         mobile: 国内电话号码 tpl_id: 模版id tpl_value: 模版变量
-        返回值: {'fee_count': xxx, 'sid': xxx} fee_count表示扣费条数(70个字一条，超出70个字时按每67字一条计), sid表示短信id
+        返回值: {'outid': xxx}
         '''
+        mobile = phone_number
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/tpl_send.json')
         _tpl_value_dict = {'#%s#' % k: v for k, v in value.iteritems()}
         tpl_value = urlencode(_tpl_value_dict)
@@ -60,11 +40,10 @@ class YunPianV1(object):
         ret = requests.post(url, data=d, timeout=5).json()
 
         if ret['code'] != 0:
-            raise YunPianExceptionV1(ret['code'], ret['msg'], ret['detail'])
+            raise SMSSendFailed('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
-        return {'fee_count': ret['result']['fee'], 'sid': ret['result']['sid']}
+        return {'outid': ret['result']['sid']}
 
-    @retry_when_request_failed
     def pull_status(self, size=20):
         '''拉取短信发送状态，已成功获取的数据api不会再次返回
         返回值: (has_more, status_list)
@@ -76,7 +55,7 @@ class YunPianV1(object):
         ret = requests.post(url, data=d).json()
 
         if ret['code'] != 0:
-            raise YunPianExceptionV1(ret['code'], ret['msg'], ret['detail'])
+            raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
         _status_list = ret['sms_status']
         has_more = len(_status_list) == size
@@ -85,7 +64,6 @@ class YunPianV1(object):
                        for i in _status_list]
         return (has_more, status_list)
 
-    @retry_when_request_failed
     def pull_reply(self, size):
         '''
         拉取短信回复数据，已成功获取的数据api不会再次返回
@@ -98,7 +76,7 @@ class YunPianV1(object):
         ret = requests.post(url, data=d).json()
 
         if ret['code'] != 0:
-            raise YunPianExceptionV1(ret['code'], ret['msg'], ret['detail'])
+            raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
         _reply_list = ret['sms_reply']
         has_more = len(_reply_list) == size
@@ -107,7 +85,6 @@ class YunPianV1(object):
                       for i in _reply_list]
         return (has_more, reply_list)
 
-    @retry_when_request_failed
     def get_black_word(self, text):
         '''查询短信中包括的屏蔽词
         返回列表。内容是屏蔽词
@@ -117,7 +94,7 @@ class YunPianV1(object):
         ret = requests.post(url, data=d).json()
 
         if ret['code'] != 0:
-            raise YunPianExceptionV1(ret['code'], ret['msg'], ret['detail'])
+            raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
         black_word_str = ret['result']['black_word'] or ''
         return black_word_str.split(',')
