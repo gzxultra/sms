@@ -35,8 +35,8 @@ class SMSCenter(object):
         return provider
 
     @classmethod
-    def send(cls, country_calling_code, phone_number, text):
-        if country_calling_code != '86':
+    def send(cls, country_code, phone_number, text):
+        if country_code != '86':
             raise NotImplemented
         provider = cls.choice_provider()
 
@@ -48,7 +48,7 @@ class SMSCenter(object):
             except YunPianExceptionV1, e:
                 raise SMSSendFailed(e.code, '%s/%s' % (e.msg, e.detail))
 
-            record = SMSRecord(country_calling_code=country_calling_code,
+            record = SMSRecord(country_code=country_code,
                                phone_number=phone_number, text=text,
                                provider_id=provider.id).save()
             fee_count, sid = ret['fee_count'], ret['sid']
@@ -105,7 +105,7 @@ class SMSRecord(Model):
             id = None
             text = ''
             fee_count = None
-            country_calling_code = ''
+            country_code = ''
             phone_number = ''
             outid = None
             create_time = datetime.datetime.now

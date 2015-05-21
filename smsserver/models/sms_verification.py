@@ -15,7 +15,7 @@ class SMSVerification(Model):
             id = None
             code = ''
             phone_number = ''
-            country_calling_code = ''
+            country_code = ''
             create_time = datetime.datetime.now
             update_time = datetime.datetime.now
             expire_time = lambda x: datetime.datetime.now() + datetime.timedelta(minutes=15)
@@ -31,11 +31,11 @@ class SMSVerification(Model):
         return serial_number, code
 
     @classmethod
-    def create_or_get_unused_verification_code(cls, country_calling_code, phone_number):
+    def create_or_get_unused_verification_code(cls, country_code, phone_number):
         '''创建或者获取一个未使用未过期的验证码。只有发送新验证码时才调用。过期时间设置为当前时间后15分钟'''
         now = datetime.datetime.now()
-        obj_list = cls.where('country_calling_code=%s and phone_number=%s and status=%s and %s <= expire_time',
-                             country_calling_code, phone_number, SMSVerificationStatus.unused, now).order_by('id desc')
+        obj_list = cls.where('country_code=%s and phone_number=%s and status=%s and %s <= expire_time',
+                             country_code, phone_number, SMSVerificationStatus.unused, now).order_by('id desc')
         if obj_list:
             obj = obj_list[0]
             expire_time = now + datetime.timedelta(minutes=15)
@@ -43,14 +43,14 @@ class SMSVerification(Model):
             return obj
 
         serial_number, code = cls._generate_serial_number_and_code()
-        obj = cls(country_calling_code=country_calling_code, phone_number=phone_number,
+        obj = cls(country_code=country_code, phone_number=phone_number,
                   serial_number=serial_number, code=code).save()
         return obj
 
     @classmethod
-    def verify(cls, country_calling_code, phone_number, serial_number, code):
+    def verify(cls, country_code, phone_number, serial_number, code):
         now = datetime.datetime.now()
-        obj = cls.get(country_calling_code=country_calling_code,
+        obj = cls.get(country_code=country_code,
                       phone_number=phone_number, serial_number=serial_number,
                       code=code)
         if not obj:
@@ -70,16 +70,13 @@ class SMSVerification(Model):
     def send_sms(self):
         try:
             self.begin()
-            record = SMSCenter.send(self.country_calling_code, self.phone_number, self.text)
+            record = SMSCenter.send(self.country_code, self.phone_number, self.text)
             svd = SMSVerificationDelivery(sms_verification_id=self.id, smsid=record.id).save()
             self.commit()
         except SMSServiceTimeout:
             # 只捕获超时异常，HTTPError以及ConnectError不捕获
             self.rollback()
             return
-        except Exception, e:
-            self.rollback()
-            raise e
 
     def is_send_success(self):
         return SMSVerificationDelivery.where(sms_verification_id=self.id).count() != 0
