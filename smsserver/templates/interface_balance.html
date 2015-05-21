@@ -11,20 +11,20 @@
       <div class="row provider" data-provider="${provider['id']}">
         <div class="col-md-8">
           <div class="progress">
-            <div class="percentage-show progress-bar progress-bar-${progress_style}" role="progressbar" aria-valuenow="${provider['weight']}" aria-valuemin="0" aria-valuemax="100" style="width: ${provider['weight']}%">
+            <div class="weight-show progress-bar progress-bar-${progress_style}" role="progressbar" aria-valuenow="${provider['weight']}" aria-valuemin="0" aria-valuemax="100" style="width: ${provider['weight']}%">
               <span>${provider['name']}</span>
             </div>
           </div>
         </div>
         <div class="col-md-2">
-          <input type="text" class="percentage-input form-control" value="${provider['weight']}">
+          <input type="text" class="weight-input form-control" value="${provider['weight']}">
         </div>
       </div>
     %endfor
     <div class="row">
       <div class="col-md-8"></div>
       <div class="col-md-4">
-        <button class="btn btn-default" class="pull-right" id="update_percentage">更改</button>
+        <button class="btn btn-default" class="pull-right" id="submitWeight">更改</button>
       </div>
     </div>
   </div>
@@ -35,26 +35,26 @@
   <script>
     function updateProgress() {
       var total = 0;
-      $('.percentage-input').each(function() {
+      $('.weight-input').each(function() {
         total += parseInt(this.value || 0, 10);
       });
 
-      $('.percentage-input').each(function() {
-        $(this).closest('.row').find('.percentage-show').css('width', $(this).val()*100/total+'%');
+      $('.weight-input').each(function() {
+        $(this).closest('.row').find('.weight-show').css('width', $(this).val()*100/total+'%');
       });
     }
 
     updateProgress();
 
-    $('.percentage-input').on('keyup', function(e) {
+    $('.weight-input').on('keyup', function(e) {
       updateProgress();
     });
 
-    $('#update_percentage').on('click', function() {
+    $('#submitWeight').on('click', function() {
       var data = {};
 
       $('.provider').each(function() {
-        data[$(this).data('provider')] = parseInt($(this).find('.percentage-input').val());
+        data[$(this).data('provider')] = parseInt($(this).find('.weight-input').val());
       });
 
       $.ajax({
@@ -63,7 +63,7 @@
         url: '${url_for('.set_interface_balance')}',
         data: {'data': JSON.stringify(data)}
       }).done(function() {
-        location = location.href;
+        location.href = location.href;
       }).fail(function(xhr) {
         alert(xhr.responseJSON.msg);
       });

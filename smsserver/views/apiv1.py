@@ -61,10 +61,8 @@ def verify_code():
     if Config.DEBUG and serial_number == 'superserialnumber' and code == 'supercode':
         return ok()
 
-    ret = SMSVerification.verify(country_code, phone_number, serial_number, code)
-    if ret:
-        return ok()
-
-    apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.invalid_verification_code[0],
-                                              simplejson.dumps(request.form)))
-    return error(Apiv1Error.invalid_verification_code)
+    if not SMSVerification.verify(country_code, phone_number, serial_number, code):
+        apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.invalid_verification_code[0],
+                                                  simplejson.dumps(request.form)))
+        return error(Apiv1Error.invalid_verification_code)
+    return ok()

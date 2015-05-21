@@ -66,9 +66,9 @@ def statistics():
     providers = SMSProvider.where()
 
     data.append(('一天内短信接口发送统计(成功/总数)', [(i.name, _sms_send_status_by_provider(one_day_before, i)) for i in providers]))
-    data.append(('一周内短信接口发送统计(成功/总数)', [(i.name, _sms_send_status_by_provider(one_day_before, i)) for i in providers]))
-    data.append(('一天内号码发送统计', _sms_send_sort_by_phone_number(now-datetime.timedelta(days=1))))
-    data.append(('一周内号码发送统计', _sms_send_sort_by_phone_number(now-datetime.timedelta(days=7))))
+    data.append(('一周内短信接口发送统计(成功/总数)', [(i.name, _sms_send_status_by_provider(one_week_before, i)) for i in providers]))
+    data.append(('一天内号码发送统计', _sms_send_sort_by_phone_number(one_week_before)))
+    data.append(('一周内号码发送统计', _sms_send_sort_by_phone_number(one_week_before)))
 
     return render_template('statistics.html', data=data)
 
