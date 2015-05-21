@@ -5,7 +5,7 @@ import random
 from requests.exceptions import Timeout
 from smsserver.models import Model
 from smsserver.models.const import SMSSendStatus
-from smsserver.utils.yunpian import YunPianV1
+from smsserver.utils.yunpian import YunPianV1, YunPianExceptionV1
 from conf import Config
 
 
@@ -14,6 +14,14 @@ yunpian = YunPianV1(Config.YUNPIAN_APIKEY)
 
 class SMSServiceTimeout(Exception):
     pass
+
+
+class SMSSendFailed(Exception):
+    def __init__(self, code, err_msg):
+        self.code, self.err_msg = code, err_msg
+
+    def __str__(self):
+        return u'code: %s, err_msg: %s' % (self.code, self.err_msg)
 
 
 class SMSCenter(object):
@@ -37,6 +45,9 @@ class SMSCenter(object):
                 ret = yunpian.send(phone_number, text)
             except Timeout:
                 raise SMSServiceTimeout
+            except YunPianExceptionV1, e:
+                raise SMSSendFailed(e.code, '%s/%s' % (e.msg, e.detail))
+
             record = SMSRecord(country_calling_code=country_calling_code,
                                phone_number=phone_number, text=text,
                                provider_id=provider.id).save()

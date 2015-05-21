@@ -3,6 +3,7 @@ import logging
 from flask import Blueprint
 from flask import request
 from smsserver.models.sms_verification import SMSVerification
+from smsserver.models.sms_center import SMSSendFailed
 from smsserver.views.viewlibs.decorator import apiv1_signed
 from smsserver.views.viewlibs.render import error, ok
 from smsserver.views.viewlibs.errors import Apiv1Error
