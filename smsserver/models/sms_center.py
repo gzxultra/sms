@@ -2,7 +2,7 @@
 
 import datetime
 import random
-from requests.exceptions import Timeout
+from requests.exceptions import Timeout, ConnectionError
 from smsserver.models import Model
 from smsserver.models.const import SMSSendStatus
 from smsserver.utils.yunpian import YunPianV1, YunPianExceptionV1
@@ -17,7 +17,7 @@ class SMSServiceTimeout(Exception):
 
 
 class SMSSendFailed(Exception):
-    def __init__(self, code, err_msg):
+    def __init__(self, code=-1, err_msg=''):
         self.code, self.err_msg = code, err_msg
 
     def __str__(self):
@@ -39,20 +39,21 @@ class SMSCenter(object):
         if country_code != '86':
             raise NotImplemented
         provider = cls.choice_provider()
+        record = SMSRecord(country_code=country_code,
+                           phone_number=phone_number, text=text,
+                           provider_id=provider.id).save()
 
         if provider.name == u'云片':
             try:
                 ret = yunpian.send(phone_number, text)
-            except Timeout:
-                raise SMSServiceTimeout
+                fee_count, sid = ret['fee_count'], ret['sid']
+                record.update(fee_count=fee_count, sid=sid, status=SMSSendStatus.success)
+            except (Timeout, ConnectionError):
+                record.update(status=SMSSendStatus.failed)
+                raise SMSSendFailed
             except YunPianExceptionV1, e:
+                record.update(status=SMSSendStatus.failed, err_msg=e.msg)
                 raise SMSSendFailed(e.code, '%s/%s' % (e.msg, e.detail))
-
-            record = SMSRecord(country_code=country_code,
-                               phone_number=phone_number, text=text,
-                               provider_id=provider.id).save()
-            fee_count, sid = ret['fee_count'], ret['sid']
-            record.update(fee_count=fee_count, sid=sid, status=SMSSendStatus.success)
         else:
             raise NotImplemented
 
