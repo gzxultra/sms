@@ -8,6 +8,8 @@ from smsserver.models.sms_center import SMSCenter
 
 
 class SMSVerification(Model):
+    VERIFICATION_CODE_EXPIRE_MINUTES = 5
+
     class Meta(object):
         table = 'sms_verification'
 
@@ -18,7 +20,7 @@ class SMSVerification(Model):
             country_code = ''
             create_time = datetime.datetime.now
             update_time = datetime.datetime.now
-            expire_time = lambda x: datetime.datetime.now() + datetime.timedelta(minutes=15)
+            expire_time = lambda x: datetime.datetime.now() + datetime.timedelta(minutes=SMSVerificationStatus.VERIFICATION_CODE_EXPIRE_MINUTES)
             serial_number = ''
             status = SMSVerificationStatus.unused
 
@@ -34,11 +36,10 @@ class SMSVerification(Model):
     def create_or_get_unused_verification_code(cls, country_code, phone_number):
         '''创建或者获取一个未使用未过期的验证码。只有发送新验证码时才调用。过期时间设置为当前时间后15分钟'''
         now = datetime.datetime.now()
-        obj_list = cls.where('country_code=%s and phone_number=%s and status=%s and %s <= expire_time',
-                             country_code, phone_number, SMSVerificationStatus.unused, now).order_by('id desc')
-        if obj_list:
-            obj = obj_list[0]
-            expire_time = now + datetime.timedelta(minutes=15)
+        obj = cls.where('country_code=%s and phone_number=%s and status=%s and %s < expire_time',
+                             country_code, phone_number, SMSVerificationStatus.unused, now).order_by('id desc')[0]
+        if obj:
+            expire_time = now + datetime.timedelta(minutes=cls.VERIFICATION_CODE_EXPIRE_MINUTES)
             obj.update(expire_time=expire_time)
             return obj
 
@@ -65,7 +66,7 @@ class SMSVerification(Model):
 
     @property
     def text(self):
-        return u'【下厨房】验证码：%s，请在15分钟内完成验证。' % (self.code)
+        return u'【下厨房】验证码：%s，请在%s分钟内完成验证。' % (self.code, self.VERIFICATION_CODE_EXPIRE_MINUTES)
 
     def send_sms(self):
         record = SMSCenter.send(self.country_code, self.phone_number, self.text)
