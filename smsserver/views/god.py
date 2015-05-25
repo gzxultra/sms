@@ -39,11 +39,12 @@ def set_interface_balance():
 
 
 def _sms_send_sort_by_phone_number(start_time):
-    sms_list = list(SMSRecord.where('create_time > %s', start_time))
+    sms_list = list(SMSRecord.where('create_time > %s and status=%s', start_time, SMSSendStatus.success))
     sms_list.sort(key=lambda x: x.phone_number, reverse=True)
     l = []
     for k, b in groupby(sms_list, lambda x: x.phone_number):
         l.append((k, len(list(b))))
+    l.sort(key=lambda x: x[1], reverse=True)
     return l
 
 
@@ -67,7 +68,7 @@ def statistics():
 
     data.append(('一天内短信接口发送统计(成功/总数)', [(i.name, _sms_send_status_by_provider(one_day_before, i)) for i in providers]))
     data.append(('一周内短信接口发送统计(成功/总数)', [(i.name, _sms_send_status_by_provider(one_week_before, i)) for i in providers]))
-    data.append(('一天内号码发送统计', _sms_send_sort_by_phone_number(one_week_before)))
+    data.append(('一天内号码发送统计', _sms_send_sort_by_phone_number(one_day_before)))
     data.append(('一周内号码发送统计', _sms_send_sort_by_phone_number(one_week_before)))
 
     return render_template('statistics.html', data=data)
