@@ -9,7 +9,7 @@ from smsserver.views.viewlibs.errors import Apiv1Error
 from conf import Config
 
 
-def compute_sign(d, secret_key, salt=None):
+def compute_sign(d, secret_key):
     md5_str = ''
 
     for key, value in sorted(d.items(), key=itemgetter(0)):
@@ -19,10 +19,7 @@ def compute_sign(d, secret_key, salt=None):
             md5_str += "%s%s" % (key, value)
         if isinstance(value, Decimal):
             md5_str += "%s%s" % (key, value)
-    if salt:
-        md5_str += str(secret_key) + str(salt)
-    else:
-        md5_str += str(secret_key)
+    md5_str += str(secret_key)
     api_sign = hashlib.md5(md5_str).hexdigest()
     return api_sign
 
