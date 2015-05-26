@@ -1,0 +1,22 @@
+<%inherit file="/common/god_base.html" />
+
+
+<%block name="main">
+  <h1 class="page-header">验证码统计</h1>
+  <div class="row">
+    %for header, providers in data:
+      <div>
+        <h3>${header}</h3>
+        <div>
+          %for provider_name, count in providers:
+            <div class="row">
+              <div class="col-md-12">
+                <span>${provider_name}</span> <span>${count}</span>
+              </div>
+            </div>
+          %endfor
+        </div>
+      </div>
+    %endfor
+  </div>
+</%block>

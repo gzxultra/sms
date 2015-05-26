@@ -1,0 +1,72 @@
+<%inherit file="/common/god_base.html" />
+
+
+<%block name="main">
+  <h1 class="page-header">短信网关接口分配</h1>
+  <div class="row">
+    %for index, provider in enumerate(sms_providers):
+      <%
+      progress_style = ['success', 'info', 'warning', 'danger'][index%4]
+      %>
+      <div class="row provider" data-provider="${provider['id']}">
+        <div class="col-md-8">
+          <div class="progress">
+            <div class="weight-show progress-bar progress-bar-${progress_style}" role="progressbar" aria-valuenow="${provider['weight']}" aria-valuemin="0" aria-valuemax="100" style="width: ${provider['weight']}%">
+              <span>${provider['name']}</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-2">
+          <input type="text" class="weight-input form-control" value="${provider['weight']}">
+        </div>
+      </div>
+    %endfor
+    <div class="row">
+      <div class="col-md-8"></div>
+      <div class="col-md-4">
+        <button class="btn btn-default" class="pull-right" id="submitWeight">更改</button>
+      </div>
+    </div>
+  </div>
+</%block>
+
+
+<%block name="js">
+  <script>
+    function updateProgress() {
+      var total = 0;
+      $('.weight-input').each(function() {
+        total += parseInt(this.value || 0, 10);
+      });
+
+      $('.weight-input').each(function() {
+        $(this).closest('.row').find('.weight-show').css('width', $(this).val()*100/total+'%');
+      });
+    }
+
+    updateProgress();
+
+    $('.weight-input').on('keyup', function(e) {
+      updateProgress();
+    });
+
+    $('#submitWeight').on('click', function() {
+      var data = {};
+
+      $('.provider').each(function() {
+        data[$(this).data('provider')] = parseInt($(this).find('.weight-input').val());
+      });
+
+      $.ajax({
+        type: 'POST',
+        dataType: 'json',
+        url: '${url_for('.set_interface_balance')}',
+        data: {'data': JSON.stringify(data)}
+      }).done(function() {
+        location.href = location.href;
+      }).fail(function(xhr) {
+        alert(xhr.responseJSON.msg);
+      });
+    });
+  </script>
+</%block>
