@@ -1,5 +1,5 @@
 # coding:utf-8
-import cmemcached
+import libmc
 import random
 
 
@@ -239,11 +239,11 @@ class MemcacheClientProxy(MemcacheClientBase):
 def _setup_mc(mc_addr):
     if not mc_addr:
         return
-    mc = cmemcached.Client(mc_addr, comp_threshold=1024)
-    mc.set_behavior(cmemcached.BEHAVIOR_CONNECT_TIMEOUT, 10)   # 0.01s
-    mc.set_behavior(cmemcached.BEHAVIOR_POLL_TIMEOUT, 300)    # 0.3s
-    mc.set_behavior(cmemcached.BEHAVIOR_RETRY_TIMEOUT, 20)    # 20 sec
-    mc.set_behavior(cmemcached.BEHAVIOR_SERVER_FAILURE_LIMIT, 2)    # 0.2 * 4 * 2 sec
+    mc = libmc.Client(list(mc_addr), comp_threshold=1024)
+    mc.config(libmc.MC_POLL_TIMEOUT, 10)             # 100ms
+    mc.config(libmc.MC_CONNECT_TIMEOUT, 300)         # 300ms
+    mc.config(libmc.MC_RETRY_TIMEOUT, 5)             # 5s
+
     return mc
 
 
