@@ -23,7 +23,7 @@ class YunPianV1Client(BaseClient):
         ret = requests.post(url, data=d, timeout=5).json()
 
         if ret['code'] != 0:
-            raise SMSSendFailed('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
+            raise SMSSendFailed('%s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         return {'outid': ret['result']['sid']}
 
