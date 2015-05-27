@@ -1,4 +1,3 @@
-Cython==0.22
 DBUtils==1.1
 Flask==0.10.1
 Flask-Mako==0.3
