@@ -8,6 +8,7 @@ from smsserver.models.sms_center import SMSCenter
 
 
 VERIFICATION_CODE_EXPIRE_MINUTES = 5
+VERIFY_TIMES_LIMIT = 30
 
 
 class SMSVerification(Model):
@@ -24,6 +25,7 @@ class SMSVerification(Model):
             expire_time = lambda x: datetime.datetime.now() + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
             serial_number = ''
             status = SMSVerificationStatus.unused
+            verify_times = 0
 
     @classmethod
     def _generate_serial_number_and_code(cls):
@@ -52,16 +54,28 @@ class SMSVerification(Model):
     @classmethod
     def verify(cls, country_code, phone_number, serial_number, code):
         now = datetime.datetime.now()
-        obj = cls.get(country_code=country_code,
-                      phone_number=phone_number, serial_number=serial_number,
-                      code=code)
+        obj = cls.get(country_code=country_code, phone_number=phone_number, serial_number=serial_number)
+
         if not obj:
             return False
 
+        obj.update(verify_times=obj.verify_times+1)
+
         expire_time = datetime.datetime.strptime(obj.expire_time, '%Y-%m-%d %H:%M:%S')
 
+        # 验证码已经使用或已过期，返回验证失败
         if obj.status != SMSVerificationStatus.unused or now >= expire_time:
             return False
+
+        # 验证码不正确
+        if obj.code != code:
+            return False
+
+        # 验证次数超过限制, 返回验证失败
+        if obj.verify_times >= VERIFY_TIMES_LIMIT:
+            obj.update(expire_time=datetime.datetime.now())
+            return False
+
         obj.update(status=SMSVerificationStatus.used)
         return True
 
