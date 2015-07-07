@@ -14,3 +14,4 @@ class SMSSendStatus(object):
 
 class SMSProviderIdent(object):
     yunpian = 1
+    dahansantong = 2
