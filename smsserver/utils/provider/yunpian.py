@@ -2,7 +2,7 @@
 
 import requests
 from urllib import urlencode
-from smsserver.utils.provider.base import retry_when_request_failed, BaseClient, SMSSendFailed
+from smsserver.utils.provider.base import BaseClient, SMSSendFailed
 
 
 class YunPianV1Client(BaseClient):
@@ -11,7 +11,6 @@ class YunPianV1Client(BaseClient):
     def __init__(self, apikey):
         self.apikey = apikey
 
-    @retry_when_request_failed(3)
     def send(self, country_code, phone_number, text):
         '''
         country_code:国家区号 phone_number:电话号码 text: 文本内容
@@ -20,10 +19,17 @@ class YunPianV1Client(BaseClient):
         mobile = phone_number
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
         d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
-        ret = requests.post(url, data=d, timeout=5).json()
+
+        try:
+            request_session = requests.Session()
+            adapter = requests.adapters.HTTPAdapter(max_retries=2)
+            request_session.mount('http://', adapter)
+            ret = request_session.post(url, data=d, timeout=5).json()
+        except requests.exceptions.RequestException, e:
+            raise SMSSendFailed(str(e))
 
         if ret['code'] != 0:
-            raise SMSSendFailed('%s %s %s' % (ret['code'], ret['msg'], ret['detail']))
+            raise SMSSendFailed('云片: %s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         return {'outid': ret['result']['sid']}
 
@@ -40,7 +46,7 @@ class YunPianV1Client(BaseClient):
         ret = requests.post(url, data=d, timeout=5).json()
 
         if ret['code'] != 0:
-            raise SMSSendFailed('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
+            raise SMSSendFailed('云片: %s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
         return {'outid': ret['result']['sid']}
 
