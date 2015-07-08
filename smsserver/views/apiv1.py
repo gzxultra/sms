@@ -29,7 +29,8 @@ def phone_send_verification_code():
                                                              simplejson.dumps(request.form)))
         return error(Apiv1Error.not_all_parameters_provided)
 
-    sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
+    sms_verification = SMSVerification.create_new_verification_code(country_code, phone_number)
+
     try:
         sms_verification.send_sms()
     except SMSSendFailed, e:
