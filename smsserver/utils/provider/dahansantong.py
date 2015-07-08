@@ -7,7 +7,7 @@ from smsserver.utils.provider.base import BaseClient, SMSSendFailed
 
 
 class DahanSanTongClient(BaseClient):
-    SEND_URL = 'http://wt.3tong.net/http/sms/submit'
+    SEND_URL = 'http://wt.3tong.net/http/sms/Submit'
 
     def __init__(self, account, password):
         self.account = account
@@ -30,19 +30,18 @@ class DahanSanTongClient(BaseClient):
         d = {'account': self.account, 'password': self.password_md5,
              'phones': phone_number, 'content': text}
         message = xml_template % d
+        ret = {}
 
         try:
             request_session = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=1)
+            adapter = requests.adapters.HTTPAdapter(max_retries=2)
             request_session.mount('http://', adapter)
             r = request_session.post(url, {'message': message}, timeout=5)
+            root = ET.fromstring(r.text)
+            for node in root:
+                ret[node.tag] = node.text
         except (requests.exceptions.RequestException), e:
             raise SMSSendFailed(str(e))
-
-        root = ET.fromstring(r.text)
-        ret = {}
-        for node in root:
-            ret[node.tag] = node.text
 
         if int(ret['result']) != 0:
             raise SMSSendFailed('大汉三通: %s %s' % (ret['result'], ret['desc']))

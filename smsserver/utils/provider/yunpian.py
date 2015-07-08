@@ -18,7 +18,7 @@ class YunPianV1Client(BaseClient):
         '''
         mobile = phone_number
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
-        d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
+        d = {'apikey': self.apikey, 'mobile': mobile, 'text': '【下厨房】%s' % text}
 
         try:
             request_session = requests.Session()

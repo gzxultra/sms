@@ -81,7 +81,7 @@ class SMSVerification(Model):
 
     @property
     def text(self):
-        return u'【下厨房】验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
+        return u'验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
 
     def send_sms(self):
         record = SMSCenter.send(self.country_code, self.phone_number, self.text)
