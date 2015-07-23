@@ -5,7 +5,7 @@ import random
 import logging
 from smsserver.models import Model
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
-from smsserver.utils.provider import SMSSendFailed, yunpianv1_client
+from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
 
 
 send_sms_logger = logging.getLogger('send_sms')
@@ -39,7 +39,7 @@ class SMSCenter(object):
                 send_sms_logger.info('sms_send_success, %s %s %s' % (country_code, phone_number, text))
                 return ret
             except SMSSendFailed, e:
-                send_sms_logger.error('sms_send_failed,%s' % (e.message))
+                send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
                 avaliable_provider_list.remove(chosen_provider)
 
         raise SMSSendFailed
@@ -65,7 +65,9 @@ class SMSProvider(Model):
     def api_client(self):
         if self.ident == SMSProviderIdent.yunpian:
             return yunpianv1_client
-        raise ValueError
+        elif self.ident == SMSProviderIdent.dahansantong:
+            return dahansantong_client
+        raise NotImplemented
 
     def set_weight(self, weight):
         self.update(weight=weight)
