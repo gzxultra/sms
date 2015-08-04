@@ -49,20 +49,19 @@ def phone_send_verification_code():
 def verify_code():
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
-    serial_number = request.form.get('serial_number', '').strip()
     code = request.form.get('code', '').strip()
 
-    if not all([country_code, phone_number, serial_number, code]):
+    if not all([country_code, phone_number, code]):
         apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
                                                   simplejson.dumps(request.form)))
 
         return error(Apiv1Error.not_all_parameters_provided)
 
     # 测试服务器万能验证码
-    if Config.DEBUG and serial_number == 'superserialnumber' and code == 'supercode':
+    if Config.DEBUG and code == '000000':
         return ok()
 
-    if not SMSVerification.verify(country_code, phone_number, serial_number, code):
+    if not SMSVerification.verify(country_code, phone_number, code):
         apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.invalid_verification_code[0],
                                                   simplejson.dumps(request.form)))
         return error(Apiv1Error.invalid_verification_code)
