@@ -60,14 +60,6 @@ class SMSVerification(Model):
         return obj
 
     @classmethod
-    def create_new_verification_code(cls, country_code, phone_number):
-        '''创建一个验证码。只有发送新验证码时才调用。'''
-        serial_number, code = cls._generate_serial_number_and_code()
-        obj = cls(country_code=country_code, phone_number=phone_number,
-                  serial_number=serial_number, code=code).save()
-        return obj
-
-    @classmethod
     def verify(cls, country_code, phone_number, code):
         obj = cls._get_unexpired_verification_code(country_code, phone_number)
 
