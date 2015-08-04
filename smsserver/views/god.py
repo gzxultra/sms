@@ -43,7 +43,7 @@ def _sms_send_sort_by_phone_number(start_time):
     sms_list.sort(key=lambda x: x.phone_number, reverse=True)
     l = []
     for k, b in groupby(sms_list, lambda x: x.phone_number):
-        if len(list(b)) >= 5:
+        if len(list(b)) >= 2:
             l.append((k, len(list(b))))
     l.sort(key=lambda x: x[1], reverse=True)
     return l
