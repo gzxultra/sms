@@ -4,7 +4,7 @@ import simplejson
 from flask import Blueprint
 from flask import request
 from smsserver.models.sms_verification import SMSVerification
-from smsserver.models.sms_center import SMSSendFailed
+from smsserver.models.sms_center import SMSSendFailed, SMSCenter
 from smsserver.views.viewlibs.decorator import apiv1_signed
 from smsserver.views.viewlibs.render import error, ok
 from smsserver.views.viewlibs.errors import Apiv1Error
@@ -16,6 +16,27 @@ __all__ = ['bp']
 
 bp = Blueprint('apiv1', __name__)
 apiv1_logger = logging.getLogger('apiv1')
+
+
+@bp.route('/message/send.json', methods=['POST'])
+@apiv1_signed
+def send_plain_text():
+    country_code = request.form.get('country_code', '').strip()
+    phone_number = request.form.get('phone_number', '').strip()
+    text = request.form.get('text', '').strip()
+
+    if not all([country_code, phone_number, text]):
+        apiv1_logger.error('send_plain_text,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
+                                                      simplejson.dumps(request.form)))
+        return error(Apiv1Error.not_all_parameters_provided)
+
+    try:
+        SMSCenter.send(country_code, phone_number, text)
+    except SMSSendFailed, e:
+        apiv1_logger.error('send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
+        return error(Apiv1Error.send_plain_text_failed)
+
+    return ok()
 
 
 @bp.route('/verification/send.json', methods=['POST'])

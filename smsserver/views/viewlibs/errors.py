@@ -8,3 +8,5 @@ class Apiv1Error(object):
 
     invalid_verification_code = (2000, 'invalid verification code')
     send_verification_code_failed = (2001, 'send_verification_code_failed')
+
+    send_plain_text_failed = (2002, 'send_plain_text_failed')
