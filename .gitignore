@@ -57,3 +57,4 @@ target/
 tmp/
 .idea
 conf/
+.flake8rc
