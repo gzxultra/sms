@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 
 
 class DefaultConfig(object):
@@ -43,3 +43,6 @@ class DefaultConfig(object):
 
     # 云片 apikey
     YUNPIAN_APIKEY = ''
+
+    # celery broker url
+    CELERY_BROKER_URL = ''

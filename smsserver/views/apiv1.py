@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 import logging
 import simplejson
 from flask import Blueprint
@@ -8,6 +8,7 @@ from smsserver.models.sms_center import SMSSendFailed, SMSCenter
 from smsserver.views.viewlibs.decorator import apiv1_signed
 from smsserver.views.viewlibs.render import error, ok
 from smsserver.views.viewlibs.errors import Apiv1Error
+from smsserver.tasks import async_send_verification_code, async_send_sms
 from conf import Config
 
 
@@ -24,11 +25,16 @@ def send_plain_text():
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     text = request.form.get('text', '').strip()
+    mode = request.form.get('mode', 'async').strip()
 
     if not all([country_code, phone_number, text]):
         apiv1_logger.error('send_plain_text,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
                                                       simplejson.dumps(request.form)))
         return error(Apiv1Error.not_all_parameters_provided)
+
+    if mode == 'async':
+        async_send_sms.delay(country_code, phone_number, text)
+        return ok()
 
     try:
         SMSCenter.send(country_code, phone_number, text)
@@ -44,6 +50,7 @@ def send_plain_text():
 def phone_send_verification_code():
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
+    mode = request.form.get('mode', 'async').strip()
 
     if not all([country_code, phone_number]):
         apiv1_logger.error('send_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
@@ -51,6 +58,12 @@ def phone_send_verification_code():
         return error(Apiv1Error.not_all_parameters_provided)
 
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
+
+    if mode == 'async':
+        async_send_verification_code.delay(sms_verification.id)
+        return ok({'serial_number': sms_verification.serial_number,
+                   'country_code': country_code,
+                   'phone_number': phone_number})
 
     try:
         sms_verification.send_sms()

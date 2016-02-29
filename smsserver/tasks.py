@@ -1,10 +1,11 @@
+# coding: utf-8
 from celery import Celery
 from conf import Config
 from smsserver.models.sms_center import SMSCenter
 from smsserver.models.sms_verification import SMSVerification
 
 
-celery = Celery('celery', Config.CELERY_BROKER_URL)
+celery = Celery('celery', broker=Config.CELERY_BROKER_URL)
 celery.conf.update(CELERY_ACKS_LATE=True)
 
 
