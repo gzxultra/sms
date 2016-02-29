@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 import datetime
 import random
 import string
@@ -12,6 +12,7 @@ VERIFY_TIMES_LIMIT = 30
 
 
 class SMSVerification(Model):
+
     class Meta(object):
         table = 'sms_verification'
 
@@ -81,17 +82,17 @@ class SMSVerification(Model):
 
     @property
     def text(self):
-        return u'验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
+        if self.country_code == '86':
+            return u'验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
+        else:
+            return u'Your xiachufang.com phone verification pin is: %s' % self.code
 
     def send_sms(self):
-        record = SMSCenter.send(self.country_code, self.phone_number, self.text)
-        SMSVerificationDelivery(sms_verification_id=self.id, smsid=record.id).save()
-
-    def is_send_success(self):
-        return SMSVerificationDelivery.where(sms_verification_id=self.id).count() != 0
+        SMSCenter.send(self.country_code, self.phone_number, self.text)
 
 
 class SMSVerificationDelivery(Model):
+
     class Meta(object):
         table = 'sms_verification_delivery'
 
