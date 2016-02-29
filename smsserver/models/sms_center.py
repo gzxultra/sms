@@ -4,7 +4,7 @@ import datetime
 import random
 import logging
 from smsserver.models import Model
-from smsserver.models.const import SMSSendStatus, SMSProviderIdent
+from smsserver.models.const import SMSSendStatus, SMSProviderIdent, ProviderServiceArea
 from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
 
 
@@ -23,24 +23,28 @@ def _weighted_choice(choices):
 
 class SMSCenter(object):
     @classmethod
-    def send(cls, country_code, phone_number, text):
-        if country_code != '86':
-            raise SMSSendFailed('不支持发送国外短信')
-
-        avaliable_provider_list = list(SMSProvider.where('weight != 0'))
+    def _yield_provider(cls, country_code, phone_number):
+        if country_code == '86':
+            avaliable_provider_list = list(SMSProvider.where('weight > 0'))
+        else:
+            avaliable_provider_list = list(SMSProvider.where('service_area=%s and weight > 0', ProviderServiceArea.world_wide))
         avaliable_provider_num = len(avaliable_provider_list)
 
         for i in range(avaliable_provider_num):
             choices = [(provider, provider.weight) for provider in avaliable_provider_list]
-            chosen_provider = _weighted_choice(choices)
+            provider = _weighted_choice(choices)
+            yield provider
+            avaliable_provider_list.remove(provider)
 
+    @classmethod
+    def send(cls, country_code, phone_number, text):
+        for provider in cls._yield_provider(country_code, phone_number):
             try:
-                ret = chosen_provider.send(country_code, phone_number, text)
-                send_sms_logger.info('sms_send_success, %s %s %s' % (country_code, phone_number, text))
+                ret = provider.send(country_code, phone_number, text)
                 return ret
-            except SMSSendFailed, e:
+            except SMSSendFailed as e:
                 send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
-                avaliable_provider_list.remove(chosen_provider)
+                continue
 
         raise SMSSendFailed
 
@@ -54,6 +58,7 @@ class SMSProvider(Model):
             name = ''
             weight = 1
             ident = None
+            service_area = ProviderServiceArea.nation_wide
             create_time = datetime.datetime.now
             update_time = datetime.datetime.now
 
