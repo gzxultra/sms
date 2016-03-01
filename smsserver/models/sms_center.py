@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 
 import datetime
 import random
@@ -22,12 +22,13 @@ def _weighted_choice(choices):
 
 
 class SMSCenter(object):
+
     @classmethod
     def _yield_provider(cls, country_code, phone_number):
         if country_code == '86':
             avaliable_provider_list = list(SMSProvider.where('weight > 0'))
         else:
-            avaliable_provider_list = list(SMSProvider.where('service_area=%s and weight > 0', ProviderServiceArea.world_wide))
+            avaliable_provider_list = list(SMSProvider.where('service_area=%s and weight > 0', ProviderServiceArea.worldwide))
         avaliable_provider_num = len(avaliable_provider_list)
 
         for i in range(avaliable_provider_num):
@@ -50,6 +51,7 @@ class SMSCenter(object):
 
 
 class SMSProvider(Model):
+
     class Meta(object):
         table = 'sms_provider'
 
@@ -58,7 +60,7 @@ class SMSProvider(Model):
             name = ''
             weight = 1
             ident = None
-            service_area = ProviderServiceArea.nation_wide
+            service_area = ProviderServiceArea.nationwide
             create_time = datetime.datetime.now
             update_time = datetime.datetime.now
 
@@ -92,6 +94,7 @@ class SMSProvider(Model):
 
 
 class SMSRecord(Model):
+
     class Meta(object):
         table = 'sms_record'
 

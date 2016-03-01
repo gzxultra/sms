@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 
 
 class SMSVerificationStatus(object):
@@ -18,5 +18,5 @@ class SMSProviderIdent(object):
 
 
 class ProviderServiceArea(object):
-    nation_wide = 1
-    world_wide = 2
+    nationwide = 1
+    worldwide = 2
