@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 
 import requests
 from urllib import urlencode
@@ -16,9 +16,15 @@ class YunPianV1Client(BaseClient):
         country_code:国家区号 phone_number:电话号码 text: 文本内容
         返回值: {'outid': xxx}
         '''
-        mobile = phone_number
+        if country_code == '86':
+            mobile = phone_number
+            text = u'【下厨房】%s' % text
+        else:
+            mobile = '+%s%s' % (country_code, phone_number)
+            text = u'【xiachufang】%s' % text
+
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
-        d = {'apikey': self.apikey, 'mobile': mobile, 'text': '【下厨房】%s' % text}
+        d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
 
         try:
             request_session = requests.Session()
@@ -38,7 +44,11 @@ class YunPianV1Client(BaseClient):
         mobile: 国内电话号码 tpl_id: 模版id tpl_value: 模版变量
         返回值: {'outid': xxx}
         '''
-        mobile = phone_number
+        if country_code == '86':
+            mobile = phone_number
+        else:
+            mobile = '+%s%s' % (country_code, phone_number)
+
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/tpl_send.json')
         _tpl_value_dict = {'#%s#' % k: v for k, v in value.iteritems()}
         tpl_value = urlencode(_tpl_value_dict)
