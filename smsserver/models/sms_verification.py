@@ -8,7 +8,7 @@ from smsserver.models.sms_center import SMSCenter
 
 
 VERIFICATION_CODE_EXPIRE_MINUTES = 5
-VERIFY_TIMES_LIMIT = 30
+VERIFY_TIMES_LIMIT = 10
 
 
 class SMSVerification(Model):
@@ -85,7 +85,7 @@ class SMSVerification(Model):
         if self.country_code == '86':
             return u'验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
         else:
-            return u'Your xiachufang.com phone verification pin is: %s' % self.code
+            return u'Your phone verification pin is: %s' % self.code
 
     def send_sms(self):
         SMSCenter.send(self.country_code, self.phone_number, self.text)
