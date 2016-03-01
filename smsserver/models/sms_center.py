@@ -3,8 +3,10 @@
 import datetime
 import random
 import logging
+import simplejson
+
 from smsserver.models import Model
-from smsserver.models.const import SMSSendStatus, SMSProviderIdent, ProviderServiceArea
+from smsserver.models.const import SMSSendStatus, SMSProviderIdent
 from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
 
 
@@ -25,17 +27,20 @@ class SMSCenter(object):
 
     @classmethod
     def _yield_provider(cls, country_code, phone_number):
-        if country_code == '86':
-            avaliable_provider_list = list(SMSProvider.where('weight > 0'))
-        else:
-            avaliable_provider_list = list(SMSProvider.where('service_area=%s and weight > 0', ProviderServiceArea.worldwide))
-        avaliable_provider_num = len(avaliable_provider_list)
+        try:
+            provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code)
+        except OutOfServiceArea:
+            raise SMSSendFailed(u'短信无法发送至该地区')
+
+        providers = [i for i in SMSProvider.get_list(provider_ids) if i.weight > 0]
+
+        avaliable_provider_num = len(providers)
 
         for i in range(avaliable_provider_num):
-            choices = [(provider, provider.weight) for provider in avaliable_provider_list]
+            choices = [(provider, provider.weight) for provider in providers]
             provider = _weighted_choice(choices)
             yield provider
-            avaliable_provider_list.remove(provider)
+            providers.remove(provider)
 
     @classmethod
     def send(cls, country_code, phone_number, text):
@@ -60,7 +65,6 @@ class SMSProvider(Model):
             name = ''
             weight = 1
             ident = None
-            service_area = ProviderServiceArea.nationwide
             create_time = datetime.datetime.now
             update_time = datetime.datetime.now
 
@@ -110,3 +114,35 @@ class SMSRecord(Model):
             error_msg = ''
             provider_id = None
             status = SMSSendStatus.initial
+
+
+class OutOfServiceArea(Exception):
+    pass
+
+
+class SMSProviderServiceArea(Model):
+
+    class Meta(object):
+        table = 'sms_provider_service_area'
+
+        class default(object):
+            id = None
+            country_code = ''
+            providers_json = '{}'
+
+    @classmethod
+    def set_avaliable_sms_providers(cls, country_code, providers):
+        obj = cls.get(country_code=country_code.strip())
+        if not obj:
+            obj = cls(country_code=country_code.strip()).save()
+        d = {'provider_ids': [i.id for i in providers]}
+        obj.update(providers_json=simplejson.dumps(d))
+
+    @classmethod
+    def get_avaliable_sms_providers(cls, country_code):
+        obj = cls.get(country_code=country_code.strip())
+        if not obj:
+            raise OutOfServiceArea
+
+        d = simplejson.loads(obj.providers_json)
+        return [i for i in d.get('provider_ids', [])]

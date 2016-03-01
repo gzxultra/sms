@@ -15,8 +15,3 @@ class SMSSendStatus(object):
 class SMSProviderIdent(object):
     yunpian = 1
     dahansantong = 2
-
-
-class ProviderServiceArea(object):
-    nationwide = 1
-    worldwide = 2
