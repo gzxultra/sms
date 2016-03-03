@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 import datetime
 import random
 import string
@@ -8,10 +8,11 @@ from smsserver.models.sms_center import SMSCenter
 
 
 VERIFICATION_CODE_EXPIRE_MINUTES = 5
-VERIFY_TIMES_LIMIT = 30
+VERIFY_TIMES_LIMIT = 10
 
 
 class SMSVerification(Model):
+
     class Meta(object):
         table = 'sms_verification'
 
@@ -81,17 +82,18 @@ class SMSVerification(Model):
 
     @property
     def text(self):
-        return u'验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
+        # 大陆、港澳台发送简体中文，其他地区发送英文
+        if self.country_code in ('86', '852', '853', '886'):
+            return u'验证码：%s，请在%s分钟内完成验证。' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
+        else:
+            return u'Your confirmation code is %s, please verify in %s minutes.' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
 
     def send_sms(self):
-        record = SMSCenter.send(self.country_code, self.phone_number, self.text)
-        SMSVerificationDelivery(sms_verification_id=self.id, smsid=record.id).save()
-
-    def is_send_success(self):
-        return SMSVerificationDelivery.where(sms_verification_id=self.id).count() != 0
+        SMSCenter.send(self.country_code, self.phone_number, self.text)
 
 
 class SMSVerificationDelivery(Model):
+
     class Meta(object):
         table = 'sms_verification_delivery'
 

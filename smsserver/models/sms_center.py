@@ -1,8 +1,10 @@
-# coding: utf8
+# coding: utf-8
 
 import datetime
 import random
 import logging
+import simplejson
+
 from smsserver.models import Model
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
 from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
@@ -22,30 +24,39 @@ def _weighted_choice(choices):
 
 
 class SMSCenter(object):
-    @classmethod
-    def send(cls, country_code, phone_number, text):
-        if country_code != '86':
-            raise SMSSendFailed('不支持发送国外短信')
 
-        avaliable_provider_list = list(SMSProvider.where('weight != 0'))
-        avaliable_provider_num = len(avaliable_provider_list)
+    @classmethod
+    def _yield_provider(cls, country_code, phone_number):
+        try:
+            provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code)
+        except OutOfServiceArea:
+            raise SMSSendFailed(u'短信无法发送至该地区')
+
+        providers = [i for i in SMSProvider.get_list(provider_ids) if i.weight > 0]
+
+        avaliable_provider_num = len(providers)
 
         for i in range(avaliable_provider_num):
-            choices = [(provider, provider.weight) for provider in avaliable_provider_list]
-            chosen_provider = _weighted_choice(choices)
+            choices = [(provider, provider.weight) for provider in providers]
+            provider = _weighted_choice(choices)
+            yield provider
+            providers.remove(provider)
 
+    @classmethod
+    def send(cls, country_code, phone_number, text):
+        for provider in cls._yield_provider(country_code, phone_number):
             try:
-                ret = chosen_provider.send(country_code, phone_number, text)
-                send_sms_logger.info('sms_send_success, %s %s %s' % (country_code, phone_number, text))
+                ret = provider.send(country_code, phone_number, text)
                 return ret
-            except SMSSendFailed, e:
+            except SMSSendFailed as e:
                 send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
-                avaliable_provider_list.remove(chosen_provider)
+                continue
 
         raise SMSSendFailed
 
 
 class SMSProvider(Model):
+
     class Meta(object):
         table = 'sms_provider'
 
@@ -87,6 +98,7 @@ class SMSProvider(Model):
 
 
 class SMSRecord(Model):
+
     class Meta(object):
         table = 'sms_record'
 
@@ -102,3 +114,35 @@ class SMSRecord(Model):
             error_msg = ''
             provider_id = None
             status = SMSSendStatus.initial
+
+
+class OutOfServiceArea(Exception):
+    pass
+
+
+class SMSProviderServiceArea(Model):
+
+    class Meta(object):
+        table = 'sms_provider_service_area'
+
+        class default(object):
+            id = None
+            country_code = ''
+            providers_json = '{}'
+
+    @classmethod
+    def set_avaliable_sms_providers(cls, country_code, providers):
+        obj = cls.get(country_code=country_code.strip())
+        if not obj:
+            obj = cls(country_code=country_code.strip()).save()
+        d = {'provider_ids': [i.id for i in providers]}
+        obj.update(providers_json=simplejson.dumps(d))
+
+    @classmethod
+    def get_avaliable_sms_providers(cls, country_code):
+        obj = cls.get(country_code=country_code.strip())
+        if not obj:
+            raise OutOfServiceArea
+
+        d = simplejson.loads(obj.providers_json)
+        return [i for i in d.get('provider_ids', [])]

@@ -1,4 +1,5 @@
-# coding:utf-8
+# coding: utf-8
+from array import array
 from decorator import decorator
 from mylib.sqlbean.db.query import Query, escape
 from mylib.sqlbean.metamodel import ModelBase
@@ -272,6 +273,19 @@ class Model(object):
     @classmethod
     def rollback(cls):
         cls.db.rollback()
+
+    @classmethod
+    def get_list(cls, id_list):
+        if type(id_list) not in (array, list, tuple, dict):
+            id_list = tuple(id_list)
+        if not id_list:
+            return []
+        id_list_ = [str(int(id)) for id in id_list if id]
+        objs = []
+        if id_list_:
+            objs = cls.where('id in (%s)' % ','.join(id_list_))
+        mappings = dict((str(getattr(obj, cls.Meta.pk)), obj) for obj in objs)
+        return [mappings.get(str(id)) for id in id_list]
 
     def _get_pk(self):
         'Sets the current value of the primary key'
