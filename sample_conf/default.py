@@ -43,6 +43,3 @@ class DefaultConfig(object):
 
     # 云片 apikey
     YUNPIAN_APIKEY = ''
-
-    # celery broker url
-    CELERY_BROKER_URL = ''
