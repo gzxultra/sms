@@ -2,37 +2,35 @@
 import datetime
 import random
 import string
-from smsserver.models import Model
+from smsserver.models import BaseModel
 from smsserver.models.const import SMSVerificationStatus
 from smsserver.models.sms_center import SMSCenter
+from peewee import CharField, DateTimeField, IntegerField
 
 
 VERIFICATION_CODE_EXPIRE_MINUTES = 5
 VERIFY_TIMES_LIMIT = 10
 
 
-class SMSVerification(Model):
+class SMSVerification(BaseModel):
+    code = CharField()
+    phone_number = CharField()
+    country_code = CharField()
+    create_time = DateTimeField(default=datetime.datetime.now)
+    update_time = DateTimeField(default=datetime.datetime.now)
+    expire_time = DateTimeField(default=lambda: datetime.datetime.now() + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES))
+    serial_number = CharField()
+    status = IntegerField(default=SMSVerificationStatus.unused)
+    verify_times = IntegerField(default=0)
 
-    class Meta(object):
-        table = 'sms_verification'
-
-        class default(object):
-            id = None
-            code = ''
-            phone_number = ''
-            country_code = ''
-            create_time = datetime.datetime.now
-            update_time = datetime.datetime.now
-            expire_time = lambda x: datetime.datetime.now() + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
-            serial_number = ''
-            status = SMSVerificationStatus.unused
-            verify_times = 0
+    class Meta:
+        db_table = 'sms_verification'
 
     @classmethod
     def _generate_serial_number_and_code(cls):
         serial_number = ''.join([random.choice(string.ascii_letters+string.digits) for i in range(16)])
         code = ''.join([random.choice(string.digits) for i in range(6)])
-        if cls.get(serial_number=serial_number, code=code):
+        if cls.select().where(cls.serial_number == serial_number & cls.code == code).count():
             return cls._generate_serial_number_and_code()
         return serial_number, code
 
@@ -40,8 +38,8 @@ class SMSVerification(Model):
     def _get_unexpired_verification_code(cls, country_code, phone_number):
         '''获得当前未过期的验证码'''
         now = datetime.datetime.now()
-        obj = cls.where('country_code=%s and phone_number=%s and status=%s and %s < expire_time',
-                        country_code, phone_number, SMSVerificationStatus.unused, now).order_by('id desc')[0]
+        obj = cls.select().where((cls.country_code == country_code) & (cls.phone_number == phone_number) &
+                                 (cls.status == SMSVerificationStatus.unused) & (cls.expire_time > now)).order_by(cls.id).first()
         return obj
 
     @classmethod
@@ -52,12 +50,13 @@ class SMSVerification(Model):
         if unexpired_verification_code:
             now = datetime.datetime.now()
             expire_time = now + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
-            unexpired_verification_code.update(expire_time=expire_time)
+            unexpired_verification_code.expire_time = expire_time
+            unexpired_verification_code.save()
             return unexpired_verification_code
 
         serial_number, code = cls._generate_serial_number_and_code()
-        obj = cls(country_code=country_code, phone_number=phone_number,
-                  serial_number=serial_number, code=code).save()
+        obj = cls.create(country_code=country_code, phone_number=phone_number,
+                  serial_number=serial_number, code=code)
         return obj
 
     @classmethod
@@ -69,15 +68,18 @@ class SMSVerification(Model):
 
         # 验证码不正确
         if obj.code != code:
-            obj.update(verify_times=obj.verify_times+1)
+            obj.verify_times += 1
+            obj.save()
             return False
 
         # 验证次数超过限制, 返回验证失败
         if obj.verify_times >= VERIFY_TIMES_LIMIT:
-            obj.update(expire_time=datetime.datetime.now(), verify_times=obj.verify_times+1)
+            obj.expire_time, obj.verify_times = datetime.datetime.now(), obj.verify_times + 1
+            obj.save()
             return False
 
-        obj.update(status=SMSVerificationStatus.used, verify_times=obj.verify_times+1)
+        obj.status, obj.verify_times = SMSVerificationStatus.used, obj.verify_times + 1
+        obj.save()
         return True
 
     @property
@@ -90,16 +92,3 @@ class SMSVerification(Model):
 
     def send_sms(self):
         SMSCenter.send(self.country_code, self.phone_number, self.text)
-
-
-class SMSVerificationDelivery(Model):
-
-    class Meta(object):
-        table = 'sms_verification_delivery'
-
-        class default(object):
-            id = None
-            sms_verification_id = None
-            smsid = None
-            create_time = datetime.datetime.now
-            update_time = datetime.datetime.now

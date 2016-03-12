@@ -5,7 +5,8 @@ import random
 import logging
 import simplejson
 
-from smsserver.models import Model
+from smsserver.models import BaseModel
+from peewee import CharField, DateTimeField, IntegerField, TextField
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
 from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
 
@@ -32,7 +33,7 @@ class SMSCenter(object):
         except OutOfServiceArea:
             raise SMSSendFailed(u'短信无法发送至该地区')
 
-        providers = [i for i in SMSProvider.get_list(provider_ids) if i.weight > 0]
+        providers = [i for i in SMSProvider.select().where(SMSProvider.id.in_(provider_ids)) if i.weight > 0]
 
         avaliable_provider_num = len(providers)
 
@@ -55,22 +56,15 @@ class SMSCenter(object):
         raise SMSSendFailed
 
 
-class SMSProvider(Model):
+class SMSProvider(BaseModel):
+    name = CharField()
+    weight = IntegerField(default=1)
+    ident = IntegerField()
+    create_time = DateTimeField(default=datetime.datetime.now)
+    update_time = DateTimeField(default=datetime.datetime.now)
 
-    class Meta(object):
-        table = 'sms_provider'
-
-        class default(object):
-            id = None
-            name = ''
-            weight = 1
-            ident = None
-            create_time = datetime.datetime.now
-            update_time = datetime.datetime.now
-
-    @classmethod
-    def create(cls, name, ident, weight):
-        return cls(name=name, ident=ident, weight=weight).save()
+    class Meta:
+        db_table = 'sms_provider'
 
     @property
     def api_client(self):
@@ -81,54 +75,51 @@ class SMSProvider(Model):
         raise NotImplemented
 
     def set_weight(self, weight):
-        self.update(weight=weight)
+        self.weight = weight
+        self.save()
 
     def send(self, country_code, phone_number, text):
         api_client = self.api_client
-        record = SMSRecord(country_code=country_code, phone_number=phone_number,
-                           text=text, provider_id=self.id).save()
+        record = SMSRecord.create(country_code=country_code, phone_number=phone_number,
+                                  text=text, provider_id=self.id)
         try:
             ret = api_client.send(country_code, phone_number, text)
         except SMSSendFailed, e:
-            record.update(status=SMSSendStatus.failed, err_msg=e.message)
+            record.statue, record.err_msg = SMSSendStatus.failed, e.message
+            record.save()
             raise e
         else:
-            record.update(status=SMSSendStatus.success, outid=ret['outid'])
+            record.statue, record.err_msg = SMSSendStatus.success, ret['outid']
+            record.save()
         return record
 
 
-class SMSRecord(Model):
+class SMSRecord(BaseModel):
+    text = CharField()
+    phone_number = CharField()
+    country_code = CharField()
+    outid = CharField()
+    create_time = DateTimeField(default=datetime.datetime.now)
+    update_time = DateTimeField(default=datetime.datetime.now)
+    receive_time = DateTimeField()
+    error_msg = CharField()
+    provider_id = IntegerField()
+    status = IntegerField(default=SMSSendStatus.initial)
 
-    class Meta(object):
-        table = 'sms_record'
-
-        class default(object):
-            id = None
-            text = ''
-            country_code = ''
-            phone_number = ''
-            outid = None
-            create_time = datetime.datetime.now
-            update_time = datetime.datetime.now
-            receive_time = None
-            error_msg = ''
-            provider_id = None
-            status = SMSSendStatus.initial
+    class Meta:
+        db_table = 'sms_record'
 
 
 class OutOfServiceArea(Exception):
     pass
 
 
-class SMSProviderServiceArea(Model):
+class SMSProviderServiceArea(BaseModel):
+    country_code = CharField()
+    providers_json = TextField(default='{}')
 
-    class Meta(object):
-        table = 'sms_provider_service_area'
-
-        class default(object):
-            id = None
-            country_code = ''
-            providers_json = '{}'
+    class Meta:
+        db_table = 'sms_provider_service_area'
 
     @classmethod
     def set_avaliable_sms_providers(cls, country_code, providers):
@@ -136,7 +127,8 @@ class SMSProviderServiceArea(Model):
         if not obj:
             obj = cls(country_code=country_code.strip()).save()
         d = {'provider_ids': [i.id for i in providers]}
-        obj.update(providers_json=simplejson.dumps(d))
+        obj.provider_json = simplejson.dumps(d)
+        obj.save()
 
     @classmethod
     def get_avaliable_sms_providers(cls, country_code):
