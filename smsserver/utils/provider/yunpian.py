@@ -10,6 +10,7 @@ class YunPianV1Client(BaseClient):
 
     def __init__(self, apikey):
         self.apikey = apikey
+        super(YunPianV1Client, self).__init__(apikey)
 
     def send(self, country_code, phone_number, text):
         '''
@@ -27,10 +28,7 @@ class YunPianV1Client(BaseClient):
         d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
 
         try:
-            request_session = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=2)
-            request_session.mount('http://', adapter)
-            ret = request_session.post(url, data=d, timeout=5).json()
+            ret = self._requests_post(url, data=d, timeout=5).json()
         except requests.exceptions.RequestException, e:
             raise SMSSendFailed(str(e))
 
@@ -53,7 +51,7 @@ class YunPianV1Client(BaseClient):
         _tpl_value_dict = {'#%s#' % k: v for k, v in value.iteritems()}
         tpl_value = urlencode(_tpl_value_dict)
         d = {'apikey': self.apikey, 'mobile': mobile, 'tpl_id': tpl_id, 'tpl_value': tpl_value}
-        ret = requests.post(url, data=d, timeout=5).json()
+        ret = self._requests_post(url, data=d, timeout=5).json()
 
         if ret['code'] != 0:
             raise SMSSendFailed('云片: %s %s %s' % (ret['code', ret['msg', ret['detail']]]))
@@ -68,7 +66,7 @@ class YunPianV1Client(BaseClient):
         '''
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/pull_status.json')
         d = {'apikey': self.apikey, 'page_size': size}
-        ret = requests.post(url, data=d).json()
+        ret = self._requests_post(url, data=d).json()
 
         if ret['code'] != 0:
             raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
@@ -89,7 +87,7 @@ class YunPianV1Client(BaseClient):
         '''
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/pull_reply.json')
         d = {'apikey': self.apikey, 'page_size': size}
-        ret = requests.post(url, data=d).json()
+        ret = self._requests_post(url, data=d).json()
 
         if ret['code'] != 0:
             raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
@@ -107,7 +105,7 @@ class YunPianV1Client(BaseClient):
         '''
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/get_black_word.json')
         d = {'apikey': self.apikey, 'text': text}
-        ret = requests.post(url, data=d).json()
+        ret = self._requests_post(url, data=d).json()
 
         if ret['code'] != 0:
             raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
