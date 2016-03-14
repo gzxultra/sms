@@ -3,7 +3,9 @@ import os
 import greenify
 greenify.greenify()
 
-libmysqlclient_path = os.environ['LIB_MYSQLCLIENT_PATH']
-assert greenify.patch_lib(libmysqlclient_path)
+ungreen_lib_path = os.environ['UNGREEN_LIB_PATH']
+for path in ungreen_lib_path.split(':'):
+    assert greenify.patch_lib(path)
+
 
 from smsserver import app       # noqa
