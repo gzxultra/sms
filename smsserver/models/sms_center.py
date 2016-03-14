@@ -123,16 +123,16 @@ class SMSProviderServiceArea(BaseModel):
 
     @classmethod
     def set_avaliable_sms_providers(cls, country_code, providers):
-        obj = cls.get(country_code=country_code.strip())
-        if not obj:
-            obj = cls(country_code=country_code.strip()).save()
+        obj = cls.select().where(country_code == country_code.strip()).first()
+        if obj:
+            obj = cls.create(country_code=country_code.strip())
         d = {'provider_ids': [i.id for i in providers]}
         obj.provider_json = simplejson.dumps(d)
         obj.save()
 
     @classmethod
     def get_avaliable_sms_providers(cls, country_code):
-        obj = cls.get(country_code=country_code.strip())
+        obj = cls.select().where(cls.country_code == country_code.strip()).first()
         if not obj:
             raise OutOfServiceArea
 
