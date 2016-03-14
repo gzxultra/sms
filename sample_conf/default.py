@@ -12,6 +12,8 @@ class DefaultConfig(object):
     DB_USER = ''
     DB_PASSWORD = ''
     DB_NAME = ''
+    DB_POOL_MAX_CONNECTIONS = 60
+    DB_POOL_STALE_TIMEOUT = 300  # sec
     COMMIT_SELECT = True
     FAKE_MEMCACHED = False
     ENABLE_LOCAL_CACHED = True
