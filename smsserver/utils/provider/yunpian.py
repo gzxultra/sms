@@ -29,7 +29,7 @@ class YunPianV1Client(BaseClient):
 
         try:
             ret = self._requests_post(url, data=d, timeout=5).json()
-        except requests.exceptions.RequestException, e:
+        except requests.exceptions.RequestException as e:
             raise SMSSendFailed(str(e))
 
         if ret['code'] != 0:

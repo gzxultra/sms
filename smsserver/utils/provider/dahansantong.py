@@ -38,7 +38,7 @@ class DahanSanTongClient(BaseClient):
             root = ET.fromstring(r.text)
             for node in root:
                 ret[node.tag] = node.text
-        except (requests.exceptions.RequestException), e:
+        except (requests.exceptions.RequestException) as e:
             raise SMSSendFailed(str(e))
 
         if int(ret['result']) != 0:

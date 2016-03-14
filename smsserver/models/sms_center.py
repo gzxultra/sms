@@ -84,7 +84,7 @@ class SMSProvider(BaseModel):
                                   text=text, provider_id=self.id)
         try:
             ret = api_client.send(country_code, phone_number, text)
-        except SMSSendFailed, e:
+        except SMSSendFailed as e:
             record.statue, record.err_msg = SMSSendStatus.failed, e.message
             record.save()
             raise e
