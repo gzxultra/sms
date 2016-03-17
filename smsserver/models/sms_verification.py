@@ -31,7 +31,7 @@ class SMSVerification(BaseModel):
     def _generate_serial_number_and_code(cls):
         serial_number = ''.join([random.choice(string.ascii_letters+string.digits) for i in range(16)])
         code = ''.join([random.choice(string.digits) for i in range(6)])
-        if cls.select().where(cls.serial_number == serial_number & cls.code == code).count():
+        if cls.select().where((cls.serial_number == serial_number) & (cls.code == code)).count():
             return cls._generate_serial_number_and_code()
         return serial_number, code
 
