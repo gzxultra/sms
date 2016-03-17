@@ -1,4 +1,4 @@
-# coding: utf8
+# coding: utf-8
 
 import requests
 import hashlib
@@ -13,6 +13,7 @@ class DahanSanTongClient(BaseClient):
         self.account = account
         self.password = password
         self.password_md5 = hashlib.md5(password).hexdigest()
+        super(DahanSanTongClient, self).__init__(account, password)
 
     def send(self, country_code, phone_number, text):
         xml_template = '''<?xml version="1.0" encoding="UTF-8"?>
@@ -33,14 +34,11 @@ class DahanSanTongClient(BaseClient):
         ret = {}
 
         try:
-            request_session = requests.Session()
-            adapter = requests.adapters.HTTPAdapter(max_retries=2)
-            request_session.mount('http://', adapter)
-            r = request_session.post(url, {'message': message}, timeout=5)
+            r = self._requests_post(url, {'message': message}, timeout=5)
             root = ET.fromstring(r.text)
             for node in root:
                 ret[node.tag] = node.text
-        except (requests.exceptions.RequestException), e:
+        except (requests.exceptions.RequestException) as e:
             raise SMSSendFailed(str(e))
 
         if int(ret['result']) != 0:

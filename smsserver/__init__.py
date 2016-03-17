@@ -1,13 +1,12 @@
-# coding: utf8
+# coding: utf-8
 
 import logging
 import logging.config
-import sys
 import simplejson
 from os.path import join, exists, dirname
 from flask import Flask
 from conf import Config
-from smsserver.models import db, mc
+from smsserver.models import db
 from raven.contrib.flask import Sentry
 from flask.ext.mako import MakoTemplates
 
@@ -15,12 +14,12 @@ from flask.ext.mako import MakoTemplates
 def register_hooks(app):
     @app.before_request
     def _before_request():
-        mc.reset()
+        db.connect()
 
     @app.teardown_request
     def _teardown_request(exception):
-        sys.stdout.flush()
-        db.commit()
+        if not db.is_closed():
+            db.close()
 
 
 def register_route(app):
@@ -41,11 +40,11 @@ def register_logger(app):
 
 def register_sentry(app):
     if not Config.DEBUG:
-        sentry = Sentry(app)
+        Sentry(app)
 
 
 def register_mako(app):
-    mako = MakoTemplates(app)
+    MakoTemplates(app)
 
 
 app = Flask(__name__, template_folder='templates')

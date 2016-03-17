@@ -32,7 +32,7 @@ def send_plain_text():
 
     try:
         SMSCenter.send(country_code, phone_number, text)
-    except SMSSendFailed, e:
+    except SMSSendFailed as e:
         apiv1_logger.error('send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
         return error(Apiv1Error.send_plain_text_failed)
 
@@ -54,7 +54,7 @@ def phone_send_verification_code():
 
     try:
         sms_verification.send_sms()
-    except SMSSendFailed, e:
+    except SMSSendFailed as e:
         apiv1_logger.error('send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
                                                                 simplejson.dumps(request.form), e.message))
 
