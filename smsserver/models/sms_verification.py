@@ -19,12 +19,13 @@ class SMSVerification(BaseModel):
     create_time = DateTimeField(default=datetime.datetime.now)
     update_time = DateTimeField(default=datetime.datetime.now)
     expire_time = DateTimeField(default=lambda: datetime.datetime.now() + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES))
-    serial_number = CharField()
+    serial_number = CharField(index=True)
     status = IntegerField(default=SMSVerificationStatus.unused)
     verify_times = IntegerField(default=0)
 
     class Meta:
         db_table = 'sms_verification'
+        indexes = ((('country_code', 'phone_number', 'status', 'expire_time'), False))
 
     @classmethod
     def _generate_serial_number_and_code(cls):

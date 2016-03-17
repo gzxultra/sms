@@ -115,7 +115,7 @@ class OutOfServiceArea(Exception):
 
 
 class SMSProviderServiceArea(BaseModel):
-    country_code = CharField()
+    country_code = CharField(index=True)
     providers_json = TextField(default='{}')
 
     class Meta:
