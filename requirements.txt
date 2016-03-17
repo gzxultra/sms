@@ -4,7 +4,6 @@ decorator==3.4.0
 Flask==0.10.1
 Flask-Mako==0.3
 greenify==0.2.2
-libmc==0.5.3
 Mako==1.0.1
 MarkupSafe==0.23
 mock==1.0.1
