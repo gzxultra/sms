@@ -26,14 +26,14 @@ def send_plain_text():
     text = request.form.get('text', '').strip()
 
     if not all([country_code, phone_number, text]):
-        apiv1_logger.error('send_plain_text,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
-                                                      simplejson.dumps(request.form)))
+        apiv1_logger.error(u'send_plain_text,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
+                                                       simplejson.dumps(request.form)))
         return error(Apiv1Error.not_all_parameters_provided)
 
     try:
         SMSCenter.send(country_code, phone_number, text)
     except SMSSendFailed as e:
-        apiv1_logger.error('send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
+        apiv1_logger.error(u'send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
         return error(Apiv1Error.send_plain_text_failed)
 
     return ok()
@@ -46,8 +46,8 @@ def phone_send_verification_code():
     phone_number = request.form.get('phone_number', '').strip()
 
     if not all([country_code, phone_number]):
-        apiv1_logger.error('send_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
-                                                             simplejson.dumps(request.form)))
+        apiv1_logger.error(u'send_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
+                                                              simplejson.dumps(request.form)))
         return error(Apiv1Error.not_all_parameters_provided)
 
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
@@ -55,8 +55,8 @@ def phone_send_verification_code():
     try:
         sms_verification.send_sms()
     except SMSSendFailed as e:
-        apiv1_logger.error('send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
-                                                                simplejson.dumps(request.form), e.message))
+        apiv1_logger.error(u'send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
+                                                                 simplejson.dumps(request.form), e.message))
 
         return error(Apiv1Error.send_verification_code_failed)
 
@@ -73,8 +73,8 @@ def verify_code():
     code = request.form.get('code', '').strip()
 
     if not all([country_code, phone_number, code]):
-        apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
-                                                  simplejson.dumps(request.form)))
+        apiv1_logger.error(u'verify_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
+                                                   simplejson.dumps(request.form)))
 
         return error(Apiv1Error.not_all_parameters_provided)
 
@@ -83,7 +83,7 @@ def verify_code():
         return ok()
 
     if not SMSVerification.verify(country_code, phone_number, code):
-        apiv1_logger.error('verify_code,%s,%s' % (Apiv1Error.invalid_verification_code[0],
-                                                  simplejson.dumps(request.form)))
+        apiv1_logger.error(u'verify_code,%s,%s' % (Apiv1Error.invalid_verification_code[0],
+                                                   simplejson.dumps(request.form)))
         return error(Apiv1Error.invalid_verification_code)
     return ok()

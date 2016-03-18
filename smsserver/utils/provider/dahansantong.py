@@ -16,7 +16,7 @@ class DahanSanTongClient(BaseClient):
         super(DahanSanTongClient, self).__init__(account, password)
 
     def send(self, country_code, phone_number, text):
-        xml_template = '''<?xml version="1.0" encoding="UTF-8"?>
+        xml_template = u'''<?xml version="1.0" encoding="UTF-8"?>
         <message>
             <account>%(account)s</account>
             <password>%(password)s</password>
@@ -35,12 +35,12 @@ class DahanSanTongClient(BaseClient):
 
         try:
             r = self._requests_post(url, {'message': message}, timeout=5)
-            root = ET.fromstring(r.text)
+            root = ET.fromstring(r.text.encode('utf8'))
             for node in root:
                 ret[node.tag] = node.text
         except (requests.exceptions.RequestException) as e:
             raise SMSSendFailed(str(e))
 
         if int(ret['result']) != 0:
-            raise SMSSendFailed('大汉三通: %s %s' % (ret['result'], ret['desc']))
+            raise SMSSendFailed(u'大汉三通: %s %s' % (ret['result'], ret['desc']))
         return {'outid': ret['msgid']}
