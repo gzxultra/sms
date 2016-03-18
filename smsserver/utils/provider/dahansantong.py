@@ -39,7 +39,7 @@ class DahanSanTongClient(BaseClient):
             for node in root:
                 ret[node.tag] = node.text
         except (requests.exceptions.RequestException) as e:
-            raise SMSSendFailed(str(e))
+            raise SMSSendFailed(str(e).decode('utf8'))
 
         if int(ret['result']) != 0:
             raise SMSSendFailed(u'大汉三通: %s %s' % (ret['result'], ret['desc']))
