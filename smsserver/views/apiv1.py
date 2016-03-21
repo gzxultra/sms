@@ -24,6 +24,7 @@ def send_plain_text():
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     text = request.form.get('text', '').strip()
+    is_async = request.form.get('mode', 'async').strip() == 'async'
 
     if not all([country_code, phone_number, text]):
         apiv1_logger.error(u'send_plain_text,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
@@ -31,7 +32,7 @@ def send_plain_text():
         return error(Apiv1Error.not_all_parameters_provided)
 
     try:
-        SMSCenter.send(country_code, phone_number, text)
+        SMSCenter.send(country_code, phone_number, text, is_async=is_async)
     except SMSSendFailed as e:
         apiv1_logger.error(u'send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
         return error(Apiv1Error.send_plain_text_failed)
@@ -44,6 +45,7 @@ def send_plain_text():
 def phone_send_verification_code():
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
+    is_async = request.form.get('mode', 'async').strip() == 'async'
 
     if not all([country_code, phone_number]):
         apiv1_logger.error(u'send_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
@@ -53,7 +55,7 @@ def phone_send_verification_code():
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
 
     try:
-        sms_verification.send_sms()
+        sms_verification.send_sms(is_async=is_async)
     except SMSSendFailed as e:
         apiv1_logger.error(u'send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
                                                                  simplejson.dumps(request.form), e.message))
