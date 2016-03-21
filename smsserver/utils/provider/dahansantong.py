@@ -35,7 +35,7 @@ class DahanSanTongClient(BaseClient):
 
         try:
             r = self._requests_post(url, {'message': message}, timeout=5)
-            root = ET.fromstring(r.text.encode('utf8'))
+            root = ET.fromstring(r.content)
             for node in root:
                 ret[node.tag] = node.text
         except (requests.exceptions.RequestException) as e:
