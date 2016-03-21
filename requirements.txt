@@ -3,6 +3,7 @@ DBUtils==1.1
 decorator==3.4.0
 Flask==0.10.1
 Flask-Mako==0.3
+gevent==1.1.0
 greenify==0.2.2
 Mako==1.0.1
 MarkupSafe==0.23
