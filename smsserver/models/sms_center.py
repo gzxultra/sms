@@ -65,7 +65,6 @@ class SMSCenter(object):
 
     @classmethod
     def send(cls, country_code, phone_number, text, is_async=True):
-        print is_async
         if is_async:
             spawn_bgtask(cls._send_no_raise, country_code=country_code, phone_number=phone_number, text=text)
             return
