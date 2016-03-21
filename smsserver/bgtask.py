@@ -6,6 +6,7 @@ import gevent
 from gevent.queue import Queue
 from gevent.pool import Pool
 from conf import Config
+from smsserver.models import db
 
 
 bgtasks_queue = Queue()
@@ -24,6 +25,7 @@ class BGTaskManager(object):
     def run(self):
         while True:
             task_id, func, args, kw = bgtasks_queue.get()
+            func = db.execution_context(with_transaction=False)(func)
             self._pool.spawn(func, *args, **kw)
 
     def active_worker_count(self):
