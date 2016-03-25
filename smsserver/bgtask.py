@@ -25,6 +25,8 @@ class BGTaskManager(object):
     def run(self):
         while True:
             task_id, func, args, kw = bgtasks_queue.get()
+            # 为每个任务创建单独的 execution context 避免数据库连接无法正常回收
+            # http://docs.peewee-orm.com/en/latest/peewee/database.html#advanced-connection-management
             func = db.execution_context(with_transaction=False)(func)
             self._pool.spawn(func, *args, **kw)
 
