@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 from flask.ext.mako import render_template
 from smsserver.models.sms_center import SMSProvider, SMSRecord
 from smsserver.models.const import SMSSendStatus
+from smsserver.bgtask import get_bgtasks_stats
 
 
 __all__ = ['bp']
@@ -83,3 +84,8 @@ def query():
     phone_number = request.args.get('phone_number', '')
     records = SMSRecord.select().where(SMSRecord.phone_number == phone_number).order_by(SMSRecord.create_time.desc())
     return render_template('query.html', records=records)
+
+
+@bp.route('/bgtask-stats')
+def bgtask_stats():
+    return jsonify(get_bgtasks_stats())

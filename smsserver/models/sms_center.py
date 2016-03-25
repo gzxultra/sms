@@ -9,6 +9,7 @@ from smsserver.models import BaseModel
 from peewee import CharField, DateTimeField, IntegerField, TextField
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
 from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
+from smsserver.bgtask import spawn_bgtask
 
 
 send_sms_logger = logging.getLogger('send_sms')
@@ -44,7 +45,7 @@ class SMSCenter(object):
             providers.remove(provider)
 
     @classmethod
-    def send(cls, country_code, phone_number, text):
+    def _send(cls, country_code, phone_number, text):
         for provider in cls._yield_provider(country_code, phone_number):
             try:
                 ret = provider.send(country_code, phone_number, text)
@@ -54,6 +55,20 @@ class SMSCenter(object):
                 continue
 
         raise SMSSendFailed
+
+    @classmethod
+    def _send_no_raise(cls, country_code, phone_number, text):
+        try:
+            cls._send(country_code, phone_number, text)
+        except SMSSendFailed as e:
+            send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
+
+    @classmethod
+    def send(cls, country_code, phone_number, text, is_async=True):
+        if is_async:
+            spawn_bgtask(cls._send_no_raise, country_code=country_code, phone_number=phone_number, text=text)
+            return
+        cls._send(country_code=country_code, phone_number=phone_number, text=text)
 
 
 class SMSProvider(BaseModel):

@@ -1,5 +1,8 @@
 # coding: utf-8
 
+from gevent import monkey
+monkey.patch_all()
+
 import logging
 import logging.config
 import simplejson

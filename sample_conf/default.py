@@ -22,6 +22,8 @@ class DefaultConfig(object):
         ('host:port', 'host:port'),
     )
 
+    BGTASK_MAX_WORKERS = 24
+
     # sentry 配置
     SENTRY_DSN = ''
 

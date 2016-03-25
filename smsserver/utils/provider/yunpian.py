@@ -33,7 +33,7 @@ class YunPianV1Client(BaseClient):
             raise SMSSendFailed(str(e))
 
         if ret['code'] != 0:
-            raise SMSSendFailed('云片: %s %s %s' % (ret['code'], ret['msg'], ret['detail']))
+            raise SMSSendFailed(u'云片: %s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         return {'outid': ret['result']['sid']}
 
@@ -54,7 +54,7 @@ class YunPianV1Client(BaseClient):
         ret = self._requests_post(url, data=d, timeout=5).json()
 
         if ret['code'] != 0:
-            raise SMSSendFailed('云片: %s %s %s' % (ret['code', ret['msg', ret['detail']]]))
+            raise SMSSendFailed(u'云片: %s %s %s' % (ret['code', ret['msg', ret['detail']]]))
 
         return {'outid': ret['result']['sid']}
 
@@ -69,7 +69,7 @@ class YunPianV1Client(BaseClient):
         ret = self._requests_post(url, data=d).json()
 
         if ret['code'] != 0:
-            raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
+            raise Exception(u'%s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         _status_list = ret['sms_status']
         has_more = len(_status_list) == size
@@ -90,7 +90,7 @@ class YunPianV1Client(BaseClient):
         ret = self._requests_post(url, data=d).json()
 
         if ret['code'] != 0:
-            raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
+            raise Exception(u'%s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         _reply_list = ret['sms_reply']
         has_more = len(_reply_list) == size
@@ -108,7 +108,7 @@ class YunPianV1Client(BaseClient):
         ret = self._requests_post(url, data=d).json()
 
         if ret['code'] != 0:
-            raise Exception('%s %s %s' % (ret['code', ret['msg', ret['detail']]]))
+            raise Exception(u'%s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         black_word_str = ret['result']['black_word'] or ''
         return black_word_str.split(',')
