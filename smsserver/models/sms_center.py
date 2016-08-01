@@ -8,7 +8,7 @@ import simplejson
 from smsserver.models import BaseModel
 from peewee import CharField, DateTimeField, IntegerField, TextField
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
-from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
+from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client, alidayu_client
 from smsserver.bgtask import spawn_bgtask
 
 
@@ -87,6 +87,8 @@ class SMSProvider(BaseModel):
             return yunpianv1_client
         elif self.ident == SMSProviderIdent.dahansantong:
             return dahansantong_client
+        elif self.ident == SMSProviderIdent.alidayu:
+            return alidayu_client
         raise NotImplemented
 
     def set_weight(self, weight):
