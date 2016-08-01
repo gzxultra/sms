@@ -48,7 +48,7 @@ class ALiDaYuClient(BaseClient):
                               ret['error_response']['msg'],
                               ret['error_response'].get('sub_code', ''),
                               ret['error_response'].get('sub_msg', ''))
-            raise SMSSendFailed((u'阿里大于: %s %s %s %s' % error_messages).encode('utf-8'))
+            raise SMSSendFailed(u'阿里大于: %s %s %s %s' % error_messages)
 
         return {'outid': ret['alibaba_aliqin_fc_sms_num_send_response']['request_id']}
 
@@ -58,7 +58,7 @@ class ALiDaYuClient(BaseClient):
             result = regex.search(text)
             if result:
                 return {'sms_template_code': template_code, 'sms_param': param_template % result.groups()}
-        raise SMSSendFailed(u'阿里大于: %s' % text)
+        raise SMSSendFailed(u'阿里大于 无法匹配模板: %s' % text)
 
     def _generate_signature(self, data):
         ordered_data = OrderedDict(sorted(data.items(), key=lambda x: x[0]))
