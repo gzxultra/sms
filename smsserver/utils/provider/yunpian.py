@@ -1,20 +1,21 @@
 # coding: utf-8
-
 import requests
+from re import compile
 from urllib import urlencode
 from smsserver.utils.provider.base import BaseClient, SMSSendFailed
 
 
 class YunPianV1Client(BaseClient):
     DOMAIN = 'http://yunpian.com'
+    VOICE_CODE_REGEX = compile('(\d{6})')
 
     def __init__(self, apikey):
         self.apikey = apikey
         super(YunPianV1Client, self).__init__(apikey)
 
-    def send(self, country_code, phone_number, text):
+    def send(self, country_code, phone_number, text, service_key):
         '''
-        country_code:国家区号 phone_number:电话号码 text: 文本内容
+        country_code:国家区号 phone_number:电话号码 text: 文本内容 service_key: 'sms' 或 'voice'
         返回值: {'outid': xxx}
         '''
         if country_code == '86':
@@ -24,8 +25,9 @@ class YunPianV1Client(BaseClient):
             mobile = '+%s%s' % (country_code, phone_number)
             text = u'【xiachufang】%s' % text
 
-        url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
-        d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
+        url = '%s/v1/%s/send.json' % (self.DOMAIN, service_key)
+        d = {'apikey': self.apikey, 'mobile': mobile}
+        d.update(self._get_service_dict(text, service_key))
 
         try:
             ret = self._requests_post(url, data=d, timeout=5).json()
@@ -36,6 +38,14 @@ class YunPianV1Client(BaseClient):
             raise SMSSendFailed(u'云片: %s %s %s' % (ret['code'], ret['msg'], ret['detail']))
 
         return {'outid': ret['result']['sid']}
+
+    def _get_service_dict(self, text, service_key):
+        if service_key == 'sms':
+            return {'text': text}
+        code = self.VOICE_CODE_REGEX.search(text)
+        if not code:
+            raise SMSSendFailed(u"云片: can't find voice code %s" % text)
+        return {'code': code.group()}
 
     def tpl_send(self, country_code, phone_number, tpl_id, value):
         '''

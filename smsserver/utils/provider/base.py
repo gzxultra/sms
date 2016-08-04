@@ -29,5 +29,5 @@ class BaseClient(object):
         session = self._get_request_session()
         return session.post(*args, **kw)
 
-    def send(self, country_code, phone_number, text):
+    def send(self, country_code, phone_number, text, service_key):
         raise NotImplemented
