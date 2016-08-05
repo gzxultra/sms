@@ -66,16 +66,15 @@ class ALiDaYuClient(BaseClient):
                     self.service_dict[service_key]['keys']['templete_code_key']: template_code,
                     self.service_dict[service_key]['keys']['param_key']:
                         param_template % self._params_filter(result.groups(), service_key)
-
                 }
         raise SMSSendFailed(u'阿里大于 无法匹配模板: %s' % text)
 
     def _generate_signature(self, data):
         ordered_data = OrderedDict(sorted(data.items(), key=lambda x: x[0]))
         params = []
-        for key in ordered_data:
-            params.append(key)
-            params.append(ordered_data[key])
+        for k, v in ordered_data.iteritems():
+            params.append(k)
+            params.append(v)
         return HMAC(self.secret, u''.join(params).encode('utf-8')).hexdigest().upper()
 
     def _params_filter(self, params, service_key):
