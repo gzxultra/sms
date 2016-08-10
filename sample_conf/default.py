@@ -51,6 +51,7 @@ class DefaultConfig(object):
     # 阿里大鱼 key secret templates
     ALIDAYU_KEY = ''
     ALIDAYU_SECRET = ''
+    ALIDAYU_CALLED_SHOW_NUM = ''
     ALIDAYU_TEMPLATES_DICT = {
         'sms': {
             'templates': (
@@ -70,6 +71,5 @@ class DefaultConfig(object):
                     'to_chinese': True  # 需要转换成汉字
                 },
             ),
-            'called_show_num': ''
         }
     }

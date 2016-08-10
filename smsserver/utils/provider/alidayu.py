@@ -11,10 +11,11 @@ class ALiDaYuClient(BaseClient):
     DIGITS_DICT = {'0': u'零', '1': u'一', '2': u'二', '3': u'三', '4': u'四',
                    '5': u'五', '6': u'六', '7': u'七', '8': u'八', '9': u'九'}
 
-    def __init__(self, apikey, secret, templates_dict):
+    def __init__(self, apikey, secret, templates_dict, called_show_num):
         self.apikey = apikey
         self.secret = secret
         self.templates_dict = templates_dict
+        self.called_show_num = called_show_num
         super(ALiDaYuClient, self).__init__()
 
     def send_sms(self, country_code, phone_number, text):
@@ -48,7 +49,7 @@ class ALiDaYuClient(BaseClient):
             'sign_method': 'hmac',
             'method': 'alibaba.aliqin.fc.tts.num.singlecall',
             'called_num': phone_number,
-            'called_show_num': self.templates_dict['voice']['called_show_num']
+            'called_show_num': self.called_show_num
         }
         data.update(self._text_map(text, self.templates_dict['voice']['templates'], 'tts_code', 'tts_param'))
         data['sign'] = self._generate_signature(data)
