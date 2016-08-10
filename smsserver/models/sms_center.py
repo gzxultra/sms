@@ -94,7 +94,7 @@ class SMSProvider(BaseModel):
             return dahansantong_client
         elif self.ident == SMSProviderIdent.alidayu:
             return alidayu_client
-        raise NotImplemented
+        raise NotImplementedError()
 
     def set_weight(self, weight):
         self.weight = weight
