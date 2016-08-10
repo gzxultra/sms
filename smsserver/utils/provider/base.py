@@ -30,7 +30,7 @@ class BaseClient(object):
         return session.post(*args, **kw)
 
     def send_sms(self, country_code, phone_number, text):
-        raise NotImplemented
+        raise NotImplementedError(u'client 不支持短信')
 
     def send_voice(self, country_code, phone_number, text):
-        raise NotImplemented
+        raise NotImplementedError(u'client 不支持语音')
