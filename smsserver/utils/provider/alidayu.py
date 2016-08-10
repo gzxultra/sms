@@ -48,7 +48,7 @@ class ALiDaYuClient(BaseClient):
             'sign_method': 'hmac',
             'method': 'alibaba.aliqin.fc.tts.num.singlecall',
             'called_num': phone_number,
-            'called_show_num': self.templates_dict['voice']['show_num']
+            'called_show_num': self.templates_dict['voice']['called_show_num']
         }
         data.update(self._text_map(text, self.templates_dict['voice']['templates'], 'tts_code', 'tts_param'))
         data['sign'] = self._generate_signature(data)
@@ -76,7 +76,7 @@ class ALiDaYuClient(BaseClient):
             if result:
                 return {
                     template_code_key: template['template_code'],
-                    param_key: template['template_code'] % self._params_filter(result.groups(), template)
+                    param_key: template['params'] % self._params_filter(result.groups(), template)
                 }
         raise SMSSendFailed(u'阿里大于 无法匹配模板: %s' % text)
 

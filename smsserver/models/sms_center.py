@@ -106,9 +106,9 @@ class SMSProvider(BaseModel):
                                   text=text, provider_id=self.id)
         try:
             if service_key == 'sms':
-                ret = api_client.send_sms(country_code, phone_number, text, service_key)
+                ret = api_client.send_sms(country_code, phone_number, text)
             else:
-                ret = api_client.send_voice(country_code, phone_number, text, service_key)
+                ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:
             record.statue, record.err_msg = SMSSendStatus.failed, e.message
             record.save()
