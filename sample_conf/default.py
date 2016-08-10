@@ -48,39 +48,28 @@ class DefaultConfig(object):
     # 云片 apikey
     YUNPIAN_APIKEY = ''
 
-    # 阿里大于 key secret regexs
+    # 阿里大鱼 key secret templates
     ALIDAYU_KEY = ''
     ALIDAYU_SECRET = ''
-    ALIDAYU_SERVICE_DICT = {
+    ALIDAYU_TEMPLATES_DICT = {
         'sms': {
-            'regexs': (
-                ('compiled_regex', '{"param": "%s"}', 'SMS_TEMPLATE_CODE'),
+            'templates': (
+                {
+                    'regex': 'compiled regex',
+                    'params': '',
+                    'template_code': ''
+                },
             ),
-            'keys': {
-                'param_key': '',
-                'templete_code_key': '',
-                'phone_number_key': '',
-                'response_key': ''
-            },
-            'extra': {
-                'sms_type': '',
-                'sms_free_sign_name': '',
-                'method': '',
-            }
         },
         'voice': {
-            'regexs': (
-                ('compiled_regex', '{"param": "%s"}', 'TTS_TEMPLATE_CODE'),
+            'templates': (
+                {
+                    'regex': 'compiled regex',
+                    'params': '',
+                    'template_code': '',
+                    'to_chinese': True  # 需要转换成汉字
+                },
             ),
-            'keys': {
-                'param_key': '',
-                'templete_code_key': '',
-                'phone_number_key': '',
-                'response_key': ''
-            },
-            'extra': {
-                'method': '',
-                'called_show_num': '',
-            }
+            'called_show_num': ''
         }
     }
