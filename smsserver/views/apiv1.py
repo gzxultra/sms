@@ -25,6 +25,7 @@ def send_plain_text():
     phone_number = request.form.get('phone_number', '').strip()
     text = request.form.get('text', '').strip()
     is_async = request.form.get('mode', 'async').strip() == 'async'
+    is_sms = request.form.get('send_mode', 'sms').strip() == 'sms'
 
     if not all([country_code, phone_number, text]):
         apiv1_logger.error(u'send_plain_text,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
@@ -32,31 +33,9 @@ def send_plain_text():
         return error(Apiv1Error.not_all_parameters_provided)
 
     try:
-        SMSCenter.send(country_code, phone_number, text, is_async=is_async)
+        SMSCenter.send(country_code, phone_number, text, is_async=is_async, is_sms=is_sms)
     except SMSSendFailed as e:
         apiv1_logger.error(u'send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
-        return error(Apiv1Error.send_plain_text_failed)
-
-    return ok()
-
-
-@bp.route('/voice_message/send.json', methods=['POST'])
-@apiv1_signed
-def send_voice_message():
-    country_code = request.form.get('country_code', '').strip()
-    phone_number = request.form.get('phone_number', '').strip()
-    text = request.form.get('text', '').strip()
-    is_async = request.form.get('mode', 'async').strip() == 'async'
-
-    if not all([country_code, phone_number, text]):
-        apiv1_logger.error(u'send_voice_message,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
-                                                          simplejson.dumps(request.form)))
-        return error(Apiv1Error.not_all_parameters_provided)
-
-    try:
-        SMSCenter.send(country_code, phone_number, text, is_async=is_async, is_sms=False)
-    except SMSSendFailed as e:
-        apiv1_logger.error(u'send_voice_message,%s,%s' % (e.message, simplejson.dumps(request.form)))
         return error(Apiv1Error.send_plain_text_failed)
 
     return ok()
@@ -68,6 +47,7 @@ def phone_send_verification_code():
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     is_async = request.form.get('mode', 'async').strip() == 'async'
+    is_sms = request.form.get('send_mode', 'sms').strip() == 'sms'
 
     if not all([country_code, phone_number]):
         apiv1_logger.error(u'send_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
@@ -77,44 +57,19 @@ def phone_send_verification_code():
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
 
     try:
-        sms_verification.send(is_async=is_async)
+        sms_verification.send(is_async=is_async, is_sms=is_sms)
     except SMSSendFailed as e:
         apiv1_logger.error(u'send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
                                                                  simplejson.dumps(request.form), e.message))
 
         return error(Apiv1Error.send_verification_code_failed)
 
-    return ok({'serial_number': sms_verification.serial_number,
+    content = {'serial_number': sms_verification.serial_number,
                'country_code': country_code,
-               'phone_number': phone_number})
-
-
-@bp.route('/voice_verification/send.json', methods=['POST'])
-@apiv1_signed
-def send_voice_verification_code():
-    country_code = request.form.get('country_code', '').strip()
-    phone_number = request.form.get('phone_number', '').strip()
-    is_async = request.form.get('mode', 'async').strip() == 'async'
-
-    if not all([country_code, phone_number]):
-        apiv1_logger.error(u'send_voice_verification_code,%s,%s' % (Apiv1Error.not_all_parameters_provided[0],
-                                                                    simplejson.dumps(request.form)))
-        return error(Apiv1Error.not_all_parameters_provided)
-
-    sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
-
-    try:
-        sms_verification.send(is_async=is_async, is_sms=False)
-    except SMSSendFailed as e:
-        apiv1_logger.error(u'send_voice_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
-                                                                       simplejson.dumps(request.form), e.message))
-
-        return error(Apiv1Error.send_verification_code_failed)
-
-    return ok({'serial_number': sms_verification.serial_number,
-               'country_code': country_code,
-               'phone_number': phone_number,
-               'called_show_num': Config.ALIDAYU_CALLED_SHOW_NUM})
+               'phone_number': phone_number}
+    if not is_sms:
+        content['called_show_num'] = Config.ALIDAYU_CALLED_SHOW_NUM
+    return ok(content)
 
 
 @bp.route('/verification/verify.json', methods=['POST'])
