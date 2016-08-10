@@ -8,29 +8,55 @@ from smsserver.utils.provider.base import BaseClient, SMSSendFailed
 
 
 class ALiDaYuClient(BaseClient):
-    URL = 'https://eco.taobao.com/router/rest'
     DIGITS_DICT = {'0': u'零', '1': u'一', '2': u'二', '3': u'三', '4': u'四',
                    '5': u'五', '6': u'六', '7': u'七', '8': u'八', '9': u'九'}
 
-    def __init__(self, apikey, secret, service_dict):
+    def __init__(self, apikey, secret, templates_dict):
         self.apikey = apikey
         self.secret = secret
-        self.service_dict = service_dict
+        self.templates_dict = templates_dict
         super(ALiDaYuClient, self).__init__()
 
-    def send(self, country_code, phone_number, text, service_key):
+    def send_sms(self, country_code, phone_number, text):
         """
         :param country_code: 国家区号(阿里大于目前只能发+86的号码, 所以这个参数并无卵用)
         :param phone_number: 手机号码
         :param text: 文本内容
-        :param service_key: 'sms' 或 'voice'
         :return: {'outid': u'z2c11bel02er'}
         """
+        data = {
+            'app_key': self.apikey,
+            'timestamp': datetime.datetime.now().strftime('%F %T'),
+            'format': 'json',
+            'v': '2.0',
+            'sign_method': 'hmac',
+            'sms_type': 'normal',
+            'sms_free_sign_name': u'下厨房',
+            'method': 'alibaba.aliqin.fc.sms.num.send',
+            'rec_num': phone_number
+        }
+        data.update(self._text_map(text, self.templates_dict['sms']['templates'], 'sms_template_code', 'sms_param'))
+        data['sign'] = self._generate_signature(data)
+        return self._send(data, 'alibaba_aliqin_fc_sms_num_send_response')
 
-        data = self._generate_data(phone_number, text, service_key)
+    def send_voice(self, country_code, phone_number, text):
+        data = {
+            'app_key': self.apikey,
+            'timestamp': datetime.datetime.now().strftime('%F %T'),
+            'format': 'json',
+            'v': '2.0',
+            'sign_method': 'hmac',
+            'method': 'alibaba.aliqin.fc.tts.num.singlecall',
+            'called_num': phone_number,
+            'called_show_num': self.templates_dict['voice']['show_num']
+        }
+        data.update(self._text_map(text, self.templates_dict['voice']['templates'], 'tts_code', 'tts_param'))
+        data['sign'] = self._generate_signature(data)
+        return self._send(data, 'alibaba_aliqin_fc_tts_num_singlecall_response')
 
+    def _send(self, data, response_key):
         try:
-            ret = self._requests_post(self.URL, data=data, timeout=5).json()
+            ret = self._requests_post(url='https://eco.taobao.com/router/rest', data=data, timeout=5).json()
         except RequestException as e:
             raise SMSSendFailed(str(e))
 
@@ -41,31 +67,16 @@ class ALiDaYuClient(BaseClient):
                               ret['error_response'].get('sub_msg', ''))
             raise SMSSendFailed(u'阿里大于: %s %s %s %s' % error_messages)
 
-        return {'outid': ret[self.service_dict[service_key]['keys']['response_key']]['request_id']}
+        return {'outid': ret[response_key]['request_id']}
 
-    def _generate_data(self, phone_number, text, service_key):
-        data = {
-            'app_key': self.apikey,
-            'timestamp': datetime.datetime.now().strftime('%F %T'),
-            'format': 'json',
-            'v': '2.0',
-            'sign_method': 'hmac',
-            self.service_dict[service_key]['keys']['phone_number_key']: phone_number
-        }
-        data.update(self.service_dict[service_key]['extra'])
-        data.update(self._text_map(text, service_key))
-        data['sign'] = self._generate_signature(data)
-        return data
-
-    def _text_map(self, text, service_key):
+    def _text_map(self, text, templates, template_code_key, param_key):
         """根据传入的 text 映射为阿里大于的模板 id && 模板变量"""
-        for regex, param_template, template_code in self.service_dict[service_key]['regexs']:
-            result = regex.search(text)
+        for template in templates:
+            result = template['regex'].search(text)
             if result:
                 return {
-                    self.service_dict[service_key]['keys']['templete_code_key']: template_code,
-                    self.service_dict[service_key]['keys']['param_key']:
-                        param_template % self._params_filter(result.groups(), service_key)
+                    template_code_key: template['template_code'],
+                    param_key: template['template_code'] % self._params_filter(result.groups(), template)
                 }
         raise SMSSendFailed(u'阿里大于 无法匹配模板: %s' % text)
 
@@ -77,8 +88,8 @@ class ALiDaYuClient(BaseClient):
             params.append(v)
         return HMAC(self.secret, u''.join(params).encode('utf-8')).hexdigest().upper()
 
-    def _params_filter(self, params, service_key):
-        if service_key == 'sms':
+    def _params_filter(self, params, template):
+        if not template.get('to_chinese', False):
             return params
         return self._digits_to_chinese(params[0])  # params: ('123456', )
 

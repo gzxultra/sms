@@ -15,7 +15,7 @@ class DahanSanTongClient(BaseClient):
         self.password_md5 = hashlib.md5(password).hexdigest()
         super(DahanSanTongClient, self).__init__(account, password)
 
-    def send(self, country_code, phone_number, text, service_key):
+    def send_sms(self, country_code, phone_number, text):
         xml_template = u'''<?xml version="1.0" encoding="UTF-8"?>
         <message>
             <account>%(account)s</account>
