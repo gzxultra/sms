@@ -12,7 +12,7 @@ class YunPianV1Client(BaseClient):
         self.apikey = apikey
         super(YunPianV1Client, self).__init__(apikey)
 
-    def send(self, country_code, phone_number, text):
+    def send_sms(self, country_code, phone_number, text):
         '''
         country_code:国家区号 phone_number:电话号码 text: 文本内容
         返回值: {'outid': xxx}

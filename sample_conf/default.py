@@ -47,3 +47,29 @@ class DefaultConfig(object):
 
     # 云片 apikey
     YUNPIAN_APIKEY = ''
+
+    # 阿里大鱼 key secret templates
+    ALIDAYU_KEY = ''
+    ALIDAYU_SECRET = ''
+    ALIDAYU_CALLED_SHOW_NUM = ''
+    ALIDAYU_TEMPLATES_DICT = {
+        'sms': {
+            'templates': (
+                {
+                    'regex': 'compiled regex',
+                    'params': '',
+                    'template_code': ''
+                },
+            ),
+        },
+        'voice': {
+            'templates': (
+                {
+                    'regex': 'compiled regex',
+                    'params': '',
+                    'template_code': '',
+                    'to_chinese': True  # 需要转换成汉字
+                },
+            ),
+        }
+    }

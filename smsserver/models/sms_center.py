@@ -8,7 +8,7 @@ import simplejson
 from smsserver.models import BaseModel
 from peewee import CharField, DateTimeField, IntegerField, TextField
 from smsserver.models.const import SMSSendStatus, SMSProviderIdent
-from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client
+from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client, alidayu_client
 from smsserver.bgtask import spawn_bgtask
 
 
@@ -25,12 +25,16 @@ def _weighted_choice(choices):
         upto += w
 
 
+def _get_service_key(is_sms):
+    return 'sms' if is_sms else 'voice'
+
+
 class SMSCenter(object):
 
     @classmethod
-    def _yield_provider(cls, country_code, phone_number):
+    def _yield_provider(cls, country_code, service_key):
         try:
-            provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code)
+            provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code, service_key)
         except OutOfServiceArea:
             raise SMSSendFailed(u'短信无法发送至该地区')
 
@@ -45,10 +49,10 @@ class SMSCenter(object):
             providers.remove(provider)
 
     @classmethod
-    def _send(cls, country_code, phone_number, text):
-        for provider in cls._yield_provider(country_code, phone_number):
+    def _send(cls, country_code, phone_number, text, service_key):
+        for provider in cls._yield_provider(country_code, service_key):
             try:
-                ret = provider.send(country_code, phone_number, text)
+                ret = provider.send(country_code, phone_number, text, service_key)
                 return ret
             except SMSSendFailed as e:
                 send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
@@ -57,18 +61,19 @@ class SMSCenter(object):
         raise SMSSendFailed
 
     @classmethod
-    def _send_no_raise(cls, country_code, phone_number, text):
+    def _send_no_raise(cls, country_code, phone_number, text, service_key):
         try:
-            cls._send(country_code, phone_number, text)
+            cls._send(country_code, phone_number, text, service_key)
         except SMSSendFailed as e:
             send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
 
     @classmethod
-    def send(cls, country_code, phone_number, text, is_async=True):
+    def send(cls, country_code, phone_number, text, is_async=True, is_sms=True):
         if is_async:
-            spawn_bgtask(cls._send_no_raise, country_code=country_code, phone_number=phone_number, text=text)
+            spawn_bgtask(cls._send_no_raise, country_code=country_code, phone_number=phone_number, text=text,
+                         service_key=_get_service_key(is_sms))
             return
-        cls._send(country_code=country_code, phone_number=phone_number, text=text)
+        cls._send(country_code=country_code, phone_number=phone_number, text=text, service_key=_get_service_key(is_sms))
 
 
 class SMSProvider(BaseModel):
@@ -87,18 +92,23 @@ class SMSProvider(BaseModel):
             return yunpianv1_client
         elif self.ident == SMSProviderIdent.dahansantong:
             return dahansantong_client
-        raise NotImplemented
+        elif self.ident == SMSProviderIdent.alidayu:
+            return alidayu_client
+        raise NotImplementedError()
 
     def set_weight(self, weight):
         self.weight = weight
         self.save()
 
-    def send(self, country_code, phone_number, text):
+    def send(self, country_code, phone_number, text, service_key):
         api_client = self.api_client
         record = SMSRecord.create(country_code=country_code, phone_number=phone_number,
                                   text=text, provider_id=self.id)
         try:
-            ret = api_client.send(country_code, phone_number, text)
+            if service_key == 'sms':
+                ret = api_client.send_sms(country_code, phone_number, text)
+            else:
+                ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:
             record.statue, record.err_msg = SMSSendStatus.failed, e.message
             record.save()
@@ -137,19 +147,20 @@ class SMSProviderServiceArea(BaseModel):
         db_table = 'sms_provider_service_area'
 
     @classmethod
-    def set_avaliable_sms_providers(cls, country_code, providers):
+    def set_avaliable_sms_providers(cls, country_code, providers, is_sms=True):
         obj = cls.select().where(cls.country_code == country_code.strip()).first()
         if obj:
             obj = cls.create(country_code=country_code.strip())
-        d = {'provider_ids': [i.id for i in providers]}
-        obj.provider_json = simplejson.dumps(d)
+        providers_dict = simplejson.loads(obj.providers_json)
+        providers_dict[_get_service_key(is_sms)] = {'provider_ids': [i.id for i in providers]}
+        obj.provider_json = simplejson.dumps(providers_dict)
         obj.save()
 
     @classmethod
-    def get_avaliable_sms_providers(cls, country_code):
+    def get_avaliable_sms_providers(cls, country_code, service_key):
         obj = cls.select().where(cls.country_code == country_code.strip()).first()
         if not obj:
             raise OutOfServiceArea
 
-        d = simplejson.loads(obj.providers_json)
-        return [i for i in d.get('provider_ids', [])]
+        providers_dict = simplejson.loads(obj.providers_json).get(service_key, {})
+        return providers_dict.get('provider_ids', [])
