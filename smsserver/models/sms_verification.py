@@ -25,7 +25,7 @@ class SMSVerification(BaseModel):
 
     class Meta:
         db_table = 'sms_verification'
-        indexes = ((('country_code', 'phone_number', 'status', 'expire_time'), False))
+        indexes = ((('country_code', 'phone_number', 'status', 'expire_time'), False),)
 
     @classmethod
     def _generate_serial_number_and_code(cls):
