@@ -37,14 +37,6 @@ class DefaultConfig(object):
     MAKO_INPUT_ENCODING = 'utf8'
     MAKO_OUTPUT_ENCODING = 'utf8'
 
-    TABLES = (
-        'sms_provider',
-        'sms_record',
-        'sms_verification',
-        'sms_verification_delivery',
-        '*',
-    )
-
     # 云片 apikey
     YUNPIAN_APIKEY = ''
 
@@ -73,3 +65,6 @@ class DefaultConfig(object):
             ),
         }
     }
+
+    STATSD_HOST = 'localhost'
+    STATSD_PORT = 8125

@@ -53,7 +53,7 @@ def register_mako(app):
 
 def register_statsd(app):
     if not Config.DEBUG:
-        FlaskStatsd(app)
+        FlaskStatsd(app=app, host=Config.STATSD_HOST, port=Config.STATSD_PORT)
 
 
 app = Flask(__name__, template_folder='templates')
