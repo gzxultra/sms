@@ -12,6 +12,7 @@ from conf import Config
 from smsserver.models import db
 from raven.contrib.flask import Sentry
 from flask.ext.mako import MakoTemplates
+from flask.ext.statsd import FlaskStatsd
 
 
 def register_hooks(app):
@@ -50,6 +51,11 @@ def register_mako(app):
     MakoTemplates(app)
 
 
+def register_statsd(app):
+    if not Config.DEBUG:
+        FlaskStatsd(app=app, host=Config.STATSD_HOST, port=Config.STATSD_PORT)
+
+
 app = Flask(__name__, template_folder='templates')
 app.config.from_object(Config)
 
@@ -59,3 +65,4 @@ register_route(app)
 register_logger(app)
 register_sentry(app)
 register_mako(app)
+register_statsd(app)

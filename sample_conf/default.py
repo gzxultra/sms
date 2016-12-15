@@ -2,7 +2,6 @@
 
 
 class DefaultConfig(object):
-    THREAD_SAFE = False
     DEBUG = False
     DOMAIN = ''
 
@@ -14,13 +13,6 @@ class DefaultConfig(object):
     DB_NAME = ''
     DB_POOL_MAX_CONNECTIONS = 60
     DB_POOL_STALE_TIMEOUT = 300  # sec
-    COMMIT_SELECT = True
-    FAKE_MEMCACHED = False
-    ENABLE_LOCAL_CACHED = True
-    MEMCACHED_ADDR = (
-        ('host:port', 'host:port'),
-        ('host:port', 'host:port'),
-    )
 
     BGTASK_MAX_WORKERS = 24
 
@@ -36,14 +28,6 @@ class DefaultConfig(object):
     MAKO_FILESYSTEM_CHECKS = True
     MAKO_INPUT_ENCODING = 'utf8'
     MAKO_OUTPUT_ENCODING = 'utf8'
-
-    TABLES = (
-        'sms_provider',
-        'sms_record',
-        'sms_verification',
-        'sms_verification_delivery',
-        '*',
-    )
 
     # 云片 apikey
     YUNPIAN_APIKEY = ''
@@ -73,3 +57,6 @@ class DefaultConfig(object):
             ),
         }
     }
+
+    STATSD_HOST = 'localhost'
+    STATSD_PORT = 8125
