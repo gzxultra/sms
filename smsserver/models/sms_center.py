@@ -1,56 +1,66 @@
 # coding: utf-8
 
 import datetime
-import random
 import logging
+import random
+
 import simplejson
-
-from smsserver.models import BaseModel
+from conf import Config
 from peewee import CharField, DateTimeField, IntegerField, TextField
-from smsserver.models.const import SMSSendStatus, SMSProviderIdent
-from smsserver.utils.provider import SMSSendFailed, yunpianv1_client, dahansantong_client, alidayu_client
 from smsserver.bgtask import spawn_bgtask
+from smsserver.models import BaseModel
+from smsserver.models.const import SMSProviderIdent, SMSSendStatus
+from smsserver.utils.provider import (
+    SMSSendFailed, alidayu_client, dahansantong_client, yunpianv1_client
+)
 
+VERIFICATION_CODE_EXPIRE_MINUTES = Config.VERIFICATION_CODE_EXPIRE_MINUTES
+VERIFY_TIMES_LIMIT = Config.VERIFY_TIMES_LIMIT
 
 send_sms_logger = logging.getLogger('send_sms')
-
-
-def _weighted_choice(choices):
-    total = sum(w for c, w in choices)
-    r = random.uniform(0, total)
-    upto = 0
-    for c, w in choices:
-        if upto + w > r:
-            return c
-        upto += w
 
 
 def _get_service_key(is_sms):
     return 'sms' if is_sms else 'voice'
 
 
+def _weighted_providers(providers, country_code, phone_number):
+    """按权重并结合随机数对providers排序"""
+    now = datetime.datetime.now()
+    expire_time = now + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
+    used_provider_ids = SMSRecord.select(SMSRecord.provider_id).where(
+        (now <= SMSRecord.update_time < expire_time) &
+        (phone_number == phone_number) &
+        (country_code == country_code)
+    )
+
+    choices = []
+    for provider in providers:
+        weight = provider.weight * random.random()
+        # 降低已用过服务的权重
+        if provider.id in used_provider_ids:
+            weight = weight / 1000.0
+        choices.append((weight, provider))
+    return [p for __, p in sorted(choices, reversed=True)]
+
+
 class SMSCenter(object):
 
     @classmethod
-    def _yield_provider(cls, country_code, service_key):
+    def _yield_provider(cls, country_code, phone_number, service_key):
         try:
             provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code, service_key)
         except OutOfServiceArea:
             raise SMSSendFailed(u'短信无法发送至该地区')
-
-        providers = [i for i in SMSProvider.select().where(SMSProvider.id.in_(provider_ids)) if i.weight > 0]
-
-        avaliable_provider_num = len(providers)
-
-        for i in range(avaliable_provider_num):
-            choices = [(provider, provider.weight) for provider in providers]
-            provider = _weighted_choice(choices)
-            yield provider
-            providers.remove(provider)
+        providers = SMSProvider.select().where(
+            SMSProvider.id.in_(provider_ids) &
+            SMSProvider.weight > 0
+        )
+        return _weighted_providers(providers, country_code, phone_number)
 
     @classmethod
     def _send(cls, country_code, phone_number, text, service_key):
-        for provider in cls._yield_provider(country_code, service_key):
+        for provider in cls._yield_provider(country_code, phone_number, service_key):
             try:
                 ret = provider.send(country_code, phone_number, text, service_key)
                 return ret
@@ -110,11 +120,11 @@ class SMSProvider(BaseModel):
             else:
                 ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:
-            record.statue, record.err_msg = SMSSendStatus.failed, e.message
+            record.status, record.err_msg = SMSSendStatus.failed, e.message
             record.save()
             raise e
         else:
-            record.statue, record.err_msg = SMSSendStatus.success, ret['outid']
+            record.status, record.err_msg = SMSSendStatus.success, ret['outid']
             record.save()
         return record
 

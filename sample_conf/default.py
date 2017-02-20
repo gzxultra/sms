@@ -25,6 +25,10 @@ class DefaultConfig(object):
 
     BGTASK_MAX_WORKERS = 20
 
+    # 验证码配置
+    VERIFICATION_CODE_EXPIRE_MINUTES = 5
+    VERIFY_TIMES_LIMIT = 10
+
     # sentry 配置
     SENTRY_DSN = ''
 
