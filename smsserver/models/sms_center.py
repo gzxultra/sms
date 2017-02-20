@@ -131,11 +131,11 @@ class SMSProvider(BaseModel):
 
 class SMSRecord(BaseModel):
     text = CharField()
-    phone_number = CharField()
-    country_code = CharField()
+    phone_number = CharField(index=True)
+    country_code = CharField(index=True)
     outid = CharField()
     create_time = DateTimeField(default=datetime.datetime.now)
-    update_time = DateTimeField(default=datetime.datetime.now)
+    update_time = DateTimeField(default=datetime.datetime.now, index=True)
     receive_time = DateTimeField()
     error_msg = CharField()
     provider_id = IntegerField()
