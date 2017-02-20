@@ -29,7 +29,7 @@ def _weighted_providers(providers, country_code, phone_number):
     now = datetime.datetime.now()
     expire_time = now + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
     used_provider_ids = SMSRecord.select(SMSRecord.provider_id).where(
-        (now <= SMSRecord.update_time < expire_time) &
+        SMSRecord.update_time.between(now, expire_time) &
         (phone_number == phone_number) &
         (country_code == country_code)
     )
@@ -41,7 +41,7 @@ def _weighted_providers(providers, country_code, phone_number):
         if provider.id in used_provider_ids:
             weight = weight / 1000.0
         choices.append((weight, provider))
-    return [p for __, p in sorted(choices, reversed=True)]
+    return [p for __, p in sorted(choices, reverse=True)]
 
 
 class SMSCenter(object):
