@@ -1,5 +1,4 @@
 # coding: utf-8
-
 import datetime
 import logging
 
@@ -16,20 +15,44 @@ from smsserver.utils.weighted_shuffle import weighted_shuffle
 send_sms_logger = logging.getLogger('send_sms')
 
 
+class OutOfServiceArea(Exception):
+    pass
+
+
 def _get_service_key(is_sms):
     return 'sms' if is_sms else 'voice'
 
 
-def _weighted_providers(providers, country_code, phone_number):
-    """按权重并结合随机数打乱providers顺序"""
+def _get_used_provider_ids(country_code, phone_number, minutes=30):
     now = datetime.datetime.now()
-    expire_time = now + datetime.timedelta(minutes=30)
-    used_provider_ids = SMSRecord.select(SMSRecord.provider_id).where(
-        SMSRecord.create_time.between(now, expire_time) &
-        (phone_number == phone_number) &
-        (country_code == country_code)
-    )
+    expire_time = now + datetime.timedelta(minutes=minutes)
+    used_provider_ids = SMSRecord\
+        .select(SMSRecord.provider_id)\
+        .distinct()\
+        .where(
+            SMSRecord.create_time.between(now, expire_time) &
+            (phone_number == phone_number) &
+            (country_code == country_code)
+        )
+    return used_provider_ids
 
+
+def _get_providers(country_code, phone_number, service_key):
+    try:
+        provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code, service_key)
+    except OutOfServiceArea:
+        raise SMSSendFailed(u'短信无法发送至该地区')
+    providers = SMSProvider.select().where(
+        SMSProvider.id.in_(provider_ids) &
+        SMSProvider.weight > 0
+    )
+    return providers
+
+
+def _get_weighted_providers(country_code, phone_number, service_key):
+    """按权重并结合随机数打乱providers顺序"""
+    providers = _get_providers(country_code, phone_number, service_key)
+    used_provider_ids = _get_used_provider_ids(country_code, phone_number)
     choices = []
     for provider in providers:
         weight = provider.weight
@@ -40,46 +63,38 @@ def _weighted_providers(providers, country_code, phone_number):
     return weighted_shuffle(choices)
 
 
+def _send(country_code, phone_number, text, service_key):
+    for provider in _get_weighted_providers(country_code, phone_number, service_key):
+        try:
+            return provider.send(country_code, phone_number, text, service_key)
+        except SMSSendFailed as e:
+            send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
+            continue
+    raise SMSSendFailed
+
+
+def _send_no_raise(country_code, phone_number, text, service_key):
+    try:
+        _send(country_code, phone_number, text, service_key)
+    except SMSSendFailed as e:
+        send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
+
+
 class SMSCenter(object):
 
     @classmethod
-    def _yield_provider(cls, country_code, phone_number, service_key):
-        try:
-            provider_ids = SMSProviderServiceArea.get_avaliable_sms_providers(country_code, service_key)
-        except OutOfServiceArea:
-            raise SMSSendFailed(u'短信无法发送至该地区')
-        providers = SMSProvider.select().where(
-            SMSProvider.id.in_(provider_ids) &
-            SMSProvider.weight > 0
-        )
-        return _weighted_providers(providers, country_code, phone_number)
-
-    @classmethod
-    def _send(cls, country_code, phone_number, text, service_key):
-        for provider in cls._yield_provider(country_code, phone_number, service_key):
-            try:
-                ret = provider.send(country_code, phone_number, text, service_key)
-                return ret
-            except SMSSendFailed as e:
-                send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
-                continue
-
-        raise SMSSendFailed
-
-    @classmethod
-    def _send_no_raise(cls, country_code, phone_number, text, service_key):
-        try:
-            cls._send(country_code, phone_number, text, service_key)
-        except SMSSendFailed as e:
-            send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
-
-    @classmethod
     def send(cls, country_code, phone_number, text, is_async=True, is_sms=True):
+        service_key = _get_service_key(is_sms)
+        params = dict(
+            country_code=country_code,
+            phone_number=phone_number,
+            text=text,
+            service_key=service_key
+        )
         if is_async:
-            spawn_bgtask(cls._send_no_raise, country_code=country_code, phone_number=phone_number, text=text,
-                         service_key=_get_service_key(is_sms))
-            return
-        cls._send(country_code=country_code, phone_number=phone_number, text=text, service_key=_get_service_key(is_sms))
+            spawn_bgtask(_send_no_raise, **params)
+        else:
+            _send(**params)
 
 
 class SMSProvider(BaseModel):
@@ -139,10 +154,6 @@ class SMSRecord(BaseModel):
 
     class Meta:
         db_table = 'sms_record'
-
-
-class OutOfServiceArea(Exception):
-    pass
 
 
 class SMSProviderServiceArea(BaseModel):
