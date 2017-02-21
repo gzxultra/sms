@@ -1,7 +1,6 @@
 # coding: utf-8
 import requests
 
-import run_dev_server  # noqa
 from beeprint import pp
 from conf import Config
 from invoke import task
