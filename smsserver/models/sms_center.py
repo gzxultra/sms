@@ -2,10 +2,8 @@
 
 import datetime
 import logging
-import random
 
 import simplejson
-from conf import Config
 from peewee import CharField, DateTimeField, IntegerField, TextField
 from smsserver.bgtask import spawn_bgtask
 from smsserver.models import BaseModel
@@ -13,9 +11,7 @@ from smsserver.models.const import SMSProviderIdent, SMSSendStatus
 from smsserver.utils.provider import (
     SMSSendFailed, alidayu_client, dahansantong_client, yunpianv1_client
 )
-
-VERIFICATION_CODE_EXPIRE_MINUTES = Config.VERIFICATION_CODE_EXPIRE_MINUTES
-VERIFY_TIMES_LIMIT = Config.VERIFY_TIMES_LIMIT
+from smsserver.utils.weighted_shuffle import weighted_shuffle
 
 send_sms_logger = logging.getLogger('send_sms')
 
@@ -25,23 +21,23 @@ def _get_service_key(is_sms):
 
 
 def _weighted_providers(providers, country_code, phone_number):
-    """按权重并结合随机数对providers排序"""
+    """按权重并结合随机数打乱providers顺序"""
     now = datetime.datetime.now()
-    expire_time = now + datetime.timedelta(minutes=VERIFICATION_CODE_EXPIRE_MINUTES)
+    expire_time = now + datetime.timedelta(minutes=30)
     used_provider_ids = SMSRecord.select(SMSRecord.provider_id).where(
-        SMSRecord.update_time.between(now, expire_time) &
+        SMSRecord.create_time.between(now, expire_time) &
         (phone_number == phone_number) &
         (country_code == country_code)
     )
 
     choices = []
     for provider in providers:
-        weight = provider.weight * random.random()
+        weight = provider.weight
         # 降低已用过服务的权重
         if provider.id in used_provider_ids:
             weight = weight / 1000.0
-        choices.append((weight, provider))
-    return [p for __, p in sorted(choices, reverse=True)]
+        choices.append((provider, weight))
+    return weighted_shuffle(choices)
 
 
 class SMSCenter(object):
@@ -120,11 +116,11 @@ class SMSProvider(BaseModel):
             else:
                 ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:
-            record.status, record.err_msg = SMSSendStatus.failed, e.message
+            record.status, record.outid = SMSSendStatus.failed, e.message
             record.save()
             raise e
         else:
-            record.status, record.err_msg = SMSSendStatus.success, ret['outid']
+            record.status, record.outid = SMSSendStatus.success, ret['outid']
             record.save()
         return record
 
@@ -132,10 +128,10 @@ class SMSProvider(BaseModel):
 class SMSRecord(BaseModel):
     text = CharField()
     phone_number = CharField(index=True)
-    country_code = CharField(index=True)
+    country_code = CharField()
     outid = CharField()
-    create_time = DateTimeField(default=datetime.datetime.now)
-    update_time = DateTimeField(default=datetime.datetime.now, index=True)
+    create_time = DateTimeField(default=datetime.datetime.now, index=True)
+    update_time = DateTimeField(default=datetime.datetime.now)
     receive_time = DateTimeField()
     error_msg = CharField()
     provider_id = IntegerField()
