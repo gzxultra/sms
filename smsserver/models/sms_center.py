@@ -25,12 +25,12 @@ def _get_service_key(is_sms):
 
 def _get_used_provider_ids(country_code, phone_number, minutes=30):
     now = datetime.datetime.now()
-    expire_time = now + datetime.timedelta(minutes=minutes)
+    past = now - datetime.timedelta(minutes=minutes)
     used_provider_ids = SMSRecord\
         .select(SMSRecord.provider_id)\
         .distinct()\
         .where(
-            SMSRecord.create_time.between(now, expire_time) &
+            SMSRecord.create_time.between(past, now) &
             (phone_number == phone_number) &
             (country_code == country_code)
         )
@@ -131,7 +131,7 @@ class SMSProvider(BaseModel):
             else:
                 ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:
-            record.status, record.outid = SMSSendStatus.failed, e.message
+            record.status, record.error_msg = SMSSendStatus.failed, e.message
             record.save()
             raise e
         else:
