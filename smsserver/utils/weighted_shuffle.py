@@ -60,4 +60,5 @@ def weighted_shuffle(choices):
     Returns:
         打乱顺序后的 value 列表
     """
+    random.shuffle(choices)
     return _flatten(_tree(choices))
