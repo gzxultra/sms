@@ -1,0 +1,3 @@
+beeprint>=2.4.6
+invoke>=0.15.0
+pytest>=3.0.6

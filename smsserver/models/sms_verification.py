@@ -6,10 +6,10 @@ from smsserver.models import BaseModel
 from smsserver.models.const import SMSVerificationStatus
 from smsserver.models.sms_center import SMSCenter
 from peewee import CharField, DateTimeField, IntegerField
+from conf import Config
 
-
-VERIFICATION_CODE_EXPIRE_MINUTES = 5
-VERIFY_TIMES_LIMIT = 10
+VERIFICATION_CODE_EXPIRE_MINUTES = Config.VERIFICATION_CODE_EXPIRE_MINUTES
+VERIFY_TIMES_LIMIT = Config.VERIFY_TIMES_LIMIT
 
 
 class SMSVerification(BaseModel):
