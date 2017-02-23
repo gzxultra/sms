@@ -26,15 +26,15 @@ def _get_service_key(is_sms):
 def _get_used_provider_ids(country_code, phone_number, minutes=30):
     now = datetime.datetime.now()
     past = now - datetime.timedelta(minutes=minutes)
-    used_provider_ids = SMSRecord\
+    used_providers = SMSRecord\
         .select(SMSRecord.provider_id)\
         .distinct()\
         .where(
             SMSRecord.create_time.between(past, now) &
-            (phone_number == phone_number) &
-            (country_code == country_code)
+            (SMSRecord.phone_number == phone_number) &
+            (SMSRecord.country_code == country_code)
         )
-    return used_provider_ids
+    return [x.provider_id for x in used_providers]
 
 
 def _get_providers(country_code, phone_number, service_key):
