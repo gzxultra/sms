@@ -1,3 +1,8 @@
+# config files
+conf/*
+!conf/__init__.py
+!conf/sample_*.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
@@ -56,5 +61,4 @@ docs/_build/
 target/
 tmp/
 .idea
-conf/
 .flake8rc
