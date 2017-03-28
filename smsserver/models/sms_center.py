@@ -131,7 +131,14 @@ class SMSProvider(BaseModel):
             else:
                 ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:
-            record.status, record.error_msg = SMSSendStatus.failed, e.message
+            # record.error_msg 最长 128，切掉尾巴
+            if isinstance(e.message, str):
+                error_msg = e.message.decode('utf-8')
+            else:
+                error_msg = e.message
+            if len(error_msg) > 128:
+                error_msg = u"{}...".format(error_msg[:125])
+            record.status, record.error_msg = SMSSendStatus.failed, error_msg
             record.save()
             raise e
         else:
