@@ -18,7 +18,7 @@ class ALiDaYuClient(BaseClient):
         self.called_show_num = called_show_num
         super(ALiDaYuClient, self).__init__()
 
-    def send_sms(self, country_code, phone_number, text):
+    def send_sms(self, signer, country_code, phone_number, text):
         """
         :param country_code: 国家区号(阿里大于目前只能发+86的号码, 所以这个参数并无卵用)
         :param phone_number: 手机号码
@@ -32,7 +32,7 @@ class ALiDaYuClient(BaseClient):
             'v': '2.0',
             'sign_method': 'hmac',
             'sms_type': 'normal',
-            'sms_free_sign_name': u'下厨房',
+            'sms_free_sign_name': signer,
             'method': 'alibaba.aliqin.fc.sms.num.send',
             'rec_num': phone_number
         }

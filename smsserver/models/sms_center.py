@@ -63,10 +63,11 @@ def _get_weighted_providers(country_code, phone_number, service_key):
     return weighted_shuffle(choices)
 
 
-def _send(country_code, phone_number, text, service_key):
+def _send(signer, country_code, phone_number, text, service_key):
     for provider in _get_weighted_providers(country_code, phone_number, service_key):
+        print provider
         try:
-            return provider.send(country_code, phone_number, text, service_key)
+            return provider.send(signer, country_code, phone_number, text, service_key)
         except SMSSendFailed as e:
             send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
             continue
@@ -83,9 +84,10 @@ def _send_no_raise(country_code, phone_number, text, service_key):
 class SMSCenter(object):
 
     @classmethod
-    def send(cls, country_code, phone_number, text, is_async=True, is_sms=True):
+    def send(cls, signer, country_code, phone_number, text, is_async=True, is_sms=True):
         service_key = _get_service_key(is_sms)
         params = dict(
+            signer=signer,
             country_code=country_code,
             phone_number=phone_number,
             text=text,
@@ -121,13 +123,13 @@ class SMSProvider(BaseModel):
         self.weight = weight
         self.save()
 
-    def send(self, country_code, phone_number, text, service_key):
+    def send(self, signer, country_code, phone_number, text, service_key):
         api_client = self.api_client
         record = SMSRecord.create(country_code=country_code, phone_number=phone_number,
                                   text=text, provider_id=self.id)
         try:
             if service_key == 'sms':
-                ret = api_client.send_sms(country_code, phone_number, text)
+                ret = api_client.send_sms(signer, country_code, phone_number, text)
             else:
                 ret = api_client.send_voice(country_code, phone_number, text)
         except SMSSendFailed as e:

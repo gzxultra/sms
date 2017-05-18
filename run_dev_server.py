@@ -4,7 +4,7 @@ import sys
 import os
 
 if not os.environ.get('SMSSERVER_CONFIG'):
-    os.environ['SMSSERVER_CONFIG'] = 'conf.develop'
+    os.environ['SMSSERVER_CONFIG'] = 'conf.sample_develop'
 
 from smsserver import app
 
@@ -15,4 +15,4 @@ if __name__ == '__main__':
     else:
         port = 8001
 
-    app.run(host='0.0.0.0', port=port)
+    app.run(host='0.0.0.0', port=port, debug=True)

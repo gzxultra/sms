@@ -21,6 +21,7 @@ apiv1_logger = logging.getLogger('apiv1')
 @bp.route('/message/send.json', methods=['POST'])
 @apiv1_signed
 def send_plain_text():
+    signer = request.form.get('signer', '下厨房').strip()
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     text = request.form.get('text', '').strip()
@@ -33,7 +34,7 @@ def send_plain_text():
         return error(Apiv1Error.not_all_parameters_provided)
 
     try:
-        SMSCenter.send(country_code, phone_number, text, is_async=is_async, is_sms=is_sms)
+        SMSCenter.send(signer, country_code, phone_number, text, is_async=is_async, is_sms=is_sms)
     except SMSSendFailed as e:
         apiv1_logger.error(u'send_plain_text,%s,%s' % (e.message, simplejson.dumps(request.form)))
         return error(Apiv1Error.send_plain_text_failed)

@@ -12,17 +12,19 @@ class YunPianV1Client(BaseClient):
         self.apikey = apikey
         super(YunPianV1Client, self).__init__(apikey)
 
-    def send_sms(self, country_code, phone_number, text):
+    def send_sms(self, signer, country_code, phone_number, text):
         '''
         country_code:国家区号 phone_number:电话号码 text: 文本内容
         返回值: {'outid': xxx}
         '''
         if country_code == '86':
             mobile = phone_number
-            text = u'【下厨房】%s' % text
+            text = u'【{}】{}'.format(signer, text)
         else:
-            mobile = '+%s%s' % (country_code, phone_number)
+            mobile = '+{}{}'.format(country_code, phone_number)
             text = u'【xiachufang】%s' % text
+
+        print 'text', text
 
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
         d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
