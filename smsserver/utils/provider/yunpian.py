@@ -24,8 +24,6 @@ class YunPianV1Client(BaseClient):
             mobile = '+{}{}'.format(country_code, phone_number)
             text = u'【xiachufang】%s' % text
 
-        print 'text', text
-
         url = '%s/%s' % (self.DOMAIN, 'v1/sms/send.json')
         d = {'apikey': self.apikey, 'mobile': mobile, 'text': text}
 

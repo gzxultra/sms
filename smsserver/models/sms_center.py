@@ -65,7 +65,6 @@ def _get_weighted_providers(country_code, phone_number, service_key):
 
 def _send(signer, country_code, phone_number, text, service_key):
     for provider in _get_weighted_providers(country_code, phone_number, service_key):
-        print provider
         try:
             return provider.send(signer, country_code, phone_number, text, service_key)
         except SMSSendFailed as e:
