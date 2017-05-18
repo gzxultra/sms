@@ -73,9 +73,9 @@ def _send(signer, country_code, phone_number, text, service_key):
     raise SMSSendFailed
 
 
-def _send_no_raise(country_code, phone_number, text, service_key):
+def _send_no_raise(signer, country_code, phone_number, text, service_key):
     try:
-        _send(country_code, phone_number, text, service_key)
+        _send(signer, country_code, phone_number, text, service_key)
     except SMSSendFailed as e:
         send_sms_logger.error('sms_send_failed,%s %s' % (phone_number, e.message))
 
