@@ -21,7 +21,7 @@ apiv1_logger = logging.getLogger('apiv1')
 @bp.route('/message/send.json', methods=['POST'])
 @apiv1_signed
 def send_plain_text():
-    signer = request.form.get('signer', '下厨房').strip()
+    signer = request.form.get('signer', u'下厨房').strip()
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     text = request.form.get('text', '').strip()
@@ -45,7 +45,7 @@ def send_plain_text():
 @bp.route('/verification/send.json', methods=['POST'])
 @apiv1_signed
 def phone_send_verification_code():
-    signer = request.form.get('signer', '下厨房').strip()
+    signer = request.form.get('signer', u'下厨房').strip()
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     is_async = request.form.get('mode', 'async').strip() == 'async'
