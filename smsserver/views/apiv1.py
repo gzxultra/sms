@@ -45,6 +45,7 @@ def send_plain_text():
 @bp.route('/verification/send.json', methods=['POST'])
 @apiv1_signed
 def phone_send_verification_code():
+    signer = request.form.get('signer', '下厨房').strip()
     country_code = request.form.get('country_code', '').strip()
     phone_number = request.form.get('phone_number', '').strip()
     is_async = request.form.get('mode', 'async').strip() == 'async'
@@ -58,7 +59,7 @@ def phone_send_verification_code():
     sms_verification = SMSVerification.create_or_get_unused_verification_code(country_code, phone_number)
 
     try:
-        sms_verification.send(is_async=is_async, is_sms=is_sms)
+        sms_verification.send(signer=signer, is_async=is_async, is_sms=is_sms)
     except SMSSendFailed as e:
         apiv1_logger.error(u'send_verification_code,%s,%s,%s' % (Apiv1Error.send_verification_code_failed[0],
                                                                  simplejson.dumps(request.form), e.message))

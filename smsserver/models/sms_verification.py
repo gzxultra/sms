@@ -91,9 +91,5 @@ class SMSVerification(BaseModel):
         else:
             return u'Your confirmation code is %s, please verify in %s minutes.' % (self.code, VERIFICATION_CODE_EXPIRE_MINUTES)
 
-    def send(self, is_async=True, is_sms=True):
-        if self.country_code == '86':
-            signer = '下厨房'
-        else:
-            signer = 'xiachufang'
+    def send(self, signer='下厨房', is_async=True, is_sms=True):
         SMSCenter.send(signer, self.country_code, self.phone_number, self.text, is_async=is_async, is_sms=is_sms)
